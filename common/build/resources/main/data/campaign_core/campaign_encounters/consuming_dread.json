@@ -1,0 +1,30 @@
+{
+  "id": "campaign_core:washed_ashore/consuming_dread",
+  "boss_entity": "sculk_and_scavenge:consuming_dread",
+  "anchor": "dark_forest",
+  "activation_radius": 36,
+  "reset_radius": 112,
+  "one_shot": true,
+  "required_stage": "REGIONAL_OBJECTIVES",
+  "retry_delay_ticks": 12000,
+  "activation": {
+    "radius": 32,
+    "biome_tag": "minecraft:is_forest",
+    "nearby_prey": 6,
+    "fill_up": 1,
+    "fill_down": -1,
+    "threshold": 100,
+    "milestones": [
+      { "mode": "equals", "at": 1, "message": "forest_uneasy" },
+      { "mode": "cross", "at": 20, "effect": "howl" },
+      { "mode": "cross", "at": 40, "effect": "silence_prey", "message": "forest_quiet", "guard": "prey_present" },
+      { "mode": "modulo", "at": 45, "step": 20, "effect": "darken" },
+      { "mode": "cross", "at": 70, "effect": "remove_prey", "message": "prey_missing", "guard": "prey_over_required" },
+      { "mode": "cross", "at": 85, "effect": "kill_prey", "guard": "prey_over_required" }
+    ],
+    "on_full": { "message": "dread_manifest", "guard": "prey_at_least_required", "action": "begin_manifestation" }
+  },
+  "on_complete": {
+    "handlers": ["complete_dread_quest", "regional_objectives_gate"]
+  }
+}

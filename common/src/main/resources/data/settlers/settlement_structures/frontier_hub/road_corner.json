@@ -1,0 +1,37 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/road_corner",
+  "role": "road",
+  "category": "roads",
+  "dimensions": [
+    11,
+    3,
+    11
+  ],
+  "description": "Hub-scale corner road module.",
+  "capacity": {},
+  "connectors": [
+    {
+      "pos": [
+        5,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    },
+    {
+      "pos": [
+        10,
+        1,
+        5
+      ],
+      "facing": "east",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "rpg-minibosses:juggernaut", "required": false },
+    { "id": "mutantmonsters:mutant_zombie", "required": false },
+    { "id": "minecraft:ravager", "required": false },
+    { "id": "mowziesmobs:frostmaw", "required": false }
+  ]
+}

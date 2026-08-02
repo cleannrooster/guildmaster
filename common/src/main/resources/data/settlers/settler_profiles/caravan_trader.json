@@ -1,0 +1,7 @@
+{
+  "role": "traveler",
+  "profession": "caravan_trader",
+  "faction": "independent_frontier",
+  "equipment_profile": "settlers:caravan_trader",
+  "job_overlay": "settlers:textures/entity/overlays/caravan_trader.png"
+}

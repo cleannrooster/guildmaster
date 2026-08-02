@@ -1,0 +1,7 @@
+{
+  "role": "authority",
+  "profession": "reeve",
+  "faction": "independent_frontier",
+  "equipment_profile": "settlers:reeve",
+  "job_overlay": "settlers:textures/entity/overlays/reeve.png"
+}

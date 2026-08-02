@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/small_plaza",
+  "role": "plaza",
+  "category": "roads",
+  "dimensions": [
+    15,
+    4,
+    15
+  ],
+  "description": "Compact satellite square providing a controlled secondary road hub.",
+  "capacity": {},
+  "connectors": [
+    {
+      "pos": [
+        7,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/district_roads"
+    },
+    {
+      "pos": [
+        7,
+        1,
+        14
+      ],
+      "facing": "south",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/district_roads"
+    },
+    {
+      "pos": [
+        0,
+        1,
+        7
+      ],
+      "facing": "west",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/district_roads"
+    },
+    {
+      "pos": [
+        14,
+        1,
+        7
+      ],
+      "facing": "east",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/district_roads"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

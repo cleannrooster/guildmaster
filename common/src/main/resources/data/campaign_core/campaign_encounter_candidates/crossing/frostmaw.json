@@ -1,0 +1,11 @@
+{
+  "slot": "campaign_core:washed_ashore/thrasher",
+  "required_mod": "mowziesmobs",
+  "entity": "mowziesmobs:frostmaw",
+  "environment": { "environment": "cold" },
+  "weight": 90,
+  "variant": "pale_cave_beast",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.pale_cave_beast",
+  "boss_bar": true,
+  "attributes": { "max_health": 240, "damage_multiplier": 0.8 }
+}

@@ -1,0 +1,30 @@
+{
+  "rules": [
+    { "contains": "town_centers", "role": "plaza" },
+    { "contains": "meeting_point", "role": "plaza" },
+    { "contains": "fountain", "role": "plaza" },
+    { "contains": "streets", "role": "road" },
+    { "contains": "big_house", "role": "authority" },
+    { "contains": "library", "role": "records" },
+    { "contains": "cartographer", "role": "records" },
+    { "contains": "temple", "role": "shrine" },
+    { "contains": "butcher", "role": "processing" },
+    { "contains": "tannery", "role": "processing" },
+    { "contains": "weaponsmith", "role": "workshop" },
+    { "contains": "armorer", "role": "armory" },
+    { "contains": "tool_smith", "role": "workshop" },
+    { "contains": "masons_house", "role": "workshop" },
+    { "contains": "fletcher", "role": "workshop" },
+    { "contains": "shepherd", "role": "residence" },
+    { "contains": "fisher", "role": "residence" },
+    { "contains": "stable", "role": "stable" },
+    { "contains": "animal_pen", "role": "pasture" },
+    { "contains": "large_farm", "role": "farm" },
+    { "contains": "small_farm", "role": "farm" },
+    { "contains": "medium_house", "role": "residence" },
+    { "contains": "small_house", "role": "residence" },
+    { "contains": "lamp", "role": "auxiliary" },
+    { "contains": "accessory", "role": "auxiliary" },
+    { "contains": "well", "role": "water" }
+  ]
+}

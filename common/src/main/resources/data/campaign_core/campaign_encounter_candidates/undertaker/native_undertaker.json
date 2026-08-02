@@ -1,0 +1,11 @@
+{
+  "slot": "campaign_core:washed_ashore/undertaker",
+  "required_mod": "sculk_and_scavenge",
+  "entity": "sculk_and_scavenge:undertaker",
+  "weight": 60,
+  "native_fallback": true,
+  "variant": "restless_guardian",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.restless_guardian",
+  "boss_bar": true,
+  "attributes": { "max_health": 100, "damage_multiplier": 0.9 }
+}

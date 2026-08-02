@@ -1,0 +1,23 @@
+{
+  "id": "campaign_core:washed_ashore/sculk_surface",
+  "boss_entity": "sculk_and_scavenge:sculken_raven",
+  "anchor": "sculk_surface",
+  "activation_radius": 40,
+  "reset_radius": 128,
+  "one_shot": true,
+  "required_stage": "REGIONAL_OBJECTIVES",
+  "sculk": {
+    "health_scale": 0.5,
+    "damage_scale": 0.5,
+    "mob_deaths_to_trigger": 10,
+    "formation_radius": 20,
+    "scan_radius": 40,
+    "wave_entity": "mebahelcreaturesdraugr:skeleton_warrior",
+    "wave_size": 5,
+    "wave_count": 3,
+    "wave_delay_ticks": 400
+  },
+  "on_complete": {
+    "message": "sculk_raven_defeated"
+  }
+}

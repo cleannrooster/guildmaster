@@ -1,0 +1,10 @@
+{
+  "slot": "campaign_core:washed_ashore/undertaker",
+  "required_mod": "born_in_chaos_v1",
+  "entity": "born_in_chaos_v1:door_knight",
+  "weight": 70,
+  "variant": "buried_knight",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.buried_knight",
+  "boss_bar": true,
+  "attributes": { "max_health": 100, "damage_multiplier": 0.6, "armor": 4, "knockback_resistance": 0.5 }
+}

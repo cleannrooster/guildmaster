@@ -1,0 +1,10 @@
+{
+  "slot": "campaign_core:washed_ashore/consuming_dread",
+  "required_mod": "born_in_chaos_v1",
+  "entity": "born_in_chaos_v1:dark_vortex",
+  "weight": 60,
+  "variant": "dread_vortex",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.dread_vortex",
+  "boss_bar": true,
+  "attributes": { "max_health": 160, "damage_multiplier": 0.8 }
+}

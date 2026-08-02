@@ -1,0 +1,10 @@
+{
+  "slot": "campaign_core:washed_ashore/sculk_surface",
+  "required_mod": "zombie_expansion",
+  "entity": "zombie_expansion:warden_zombie",
+  "weight": 60,
+  "variant": "assimilated_champion",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.assimilated_champion",
+  "boss_bar": true,
+  "attributes": { "max_health": 200, "damage_multiplier": 0.8 }
+}

@@ -1,0 +1,13 @@
+{
+  "slot": "campaign_core:washed_ashore/regional_boss_c",
+  "required_mod": "rpg-minibosses",
+  "weight": 60,
+  "native_fallback": true,
+  "variant": "mechanical_siege",
+  "raid": [
+    { "entity": "rpg-minibosses:juggernaut", "count": 1, "role": "heavy" },
+    { "entity": "rpg-minibosses:minor_mercenary", "count": 2, "role": "frontline" },
+    { "entity": "rpg-minibosses:trickster", "count": 1, "role": "specialist" },
+    { "entity": "rpg-minibosses:minor_archmage_fire", "count": 1, "role": "ranged" }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.settler.idle": {
+      "loop": true,
+      "animation_length": 3.0
+    },
+    "animation.settler.work_hammer": {
+      "loop": true,
+      "animation_length": 1.0,
+      "bones": {
+        "rightArm": {
+          "rotation": {
+            "0.0": [-120, 0, 0],
+            "0.35": [-25, 0, 0],
+            "0.5": [-30, 0, 0],
+            "1.0": [-120, 0, 0]
+          }
+        },
+        "body": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "0.35": [12, 0, 0],
+            "0.5": [10, 0, 0],
+            "1.0": [0, 0, 0]
+          }
+        }
+      }
+    }
+  }
+}

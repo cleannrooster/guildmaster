@@ -1,0 +1,7 @@
+{
+  "role": "worker",
+  "profession": "shrine_keeper",
+  "faction": "independent_frontier",
+  "equipment_profile": "settlers:shrine_keeper",
+  "job_overlay": "settlers:textures/entity/overlays/shrine_keeper.png"
+}

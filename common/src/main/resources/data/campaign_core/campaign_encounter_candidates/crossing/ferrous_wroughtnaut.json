@@ -1,0 +1,12 @@
+{
+  "slot": "campaign_core:washed_ashore/thrasher",
+  "required_mod": "mowziesmobs",
+  "entity": "mowziesmobs:ferrous_wroughtnaut",
+  "environment": { "environment": "generic" },
+  "weight": 40,
+  "variant": "buried_knight",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.buried_knight",
+  "boss_bar": true,
+  "suppress_native_drops": true,
+  "attributes": { "max_health": 220, "damage_multiplier": 0.65, "knockback_resistance": 0.8 }
+}

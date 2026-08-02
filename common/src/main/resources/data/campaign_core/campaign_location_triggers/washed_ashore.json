@@ -1,0 +1,34 @@
+{
+  "triggers": [
+    {
+      "location": "other_settlement",
+      "radius": 128,
+      "condition": "other_hub_unplaced",
+      "discover": "campaign_core:washed_ashore/reserved_other_settlement_site",
+      "message": "future_settlement_site"
+    },
+    {
+      "location": "guide",
+      "radius": 12,
+      "below_stage": "GUIDE_FOUND",
+      "discover": "campaign_core:washed_ashore/guide_landmark",
+      "advance_to": ["GUIDE_FOUND"],
+      "message": "graveyard",
+      "handler": "reveal_guide"
+    },
+    {
+      "location": "settlement",
+      "radius": 48,
+      "below_stage": "SETTLEMENT_REACHED",
+      "handler": "settlement_arrival"
+    },
+    {
+      "location": "other_settlement",
+      "radius": 48,
+      "min_stage": "REGIONAL_OBJECTIVES",
+      "condition": "other_hub_placed",
+      "discover": "campaign_core:washed_ashore/distant_settlement",
+      "handler": "settlement_raid"
+    }
+  ]
+}

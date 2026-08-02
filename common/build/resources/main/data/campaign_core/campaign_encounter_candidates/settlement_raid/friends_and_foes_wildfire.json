@@ -1,0 +1,12 @@
+{
+  "slot": "campaign_core:washed_ashore/regional_boss_c",
+  "required_mod": "friendsandfoes",
+  "entity": "friendsandfoes:wildfire",
+  "environment": { "environment": "generic" },
+  "weight": 30,
+  "variant": "mechanical_siege",
+  "boss_bar": true,
+  "suppress_native_drops": true,
+  "persistence": true,
+  "attributes": { "max_health": 190, "damage_multiplier": 0.7, "knockback_resistance": 0.7 }
+}

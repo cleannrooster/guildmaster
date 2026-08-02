@@ -1,0 +1,6 @@
+{
+  "tier": 1,
+  "slot": "settlement",
+  "interval_ticks": 36000,
+  "player_radius": 192
+}

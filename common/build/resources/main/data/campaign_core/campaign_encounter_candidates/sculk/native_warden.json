@@ -1,0 +1,12 @@
+{
+  "slot": "campaign_core:washed_ashore/sculk_surface",
+  "entity": "minecraft:warden",
+  "weight": 60,
+  "native_fallback": true,
+  "variant": "surface_guardian",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.surface_guardian",
+  "boss_bar": true,
+  "persistence": true,
+  "suppress_native_drops": true,
+  "attributes": { "max_health": 200, "damage_multiplier": 0.3, "knockback_resistance": 0.8 }
+}

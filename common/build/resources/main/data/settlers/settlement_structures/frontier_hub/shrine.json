@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/shrine",
+  "role": "shrine",
+  "category": "civic",
+  "dimensions": [
+    15,
+    11,
+    13
+  ],
+  "description": "Public shrine and quiet gathering space.",
+  "capacity": {},
+  "connectors": [
+    {
+      "pos": [
+        7,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

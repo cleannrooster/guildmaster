@@ -1,0 +1,13 @@
+{
+  "id": "campaign_core:washed_ashore/sculken_raven",
+  "boss_entity": "sculk_and_scavenge:sculken_raven",
+  "anchor": "raven",
+  "activation_radius": 48,
+  "reset_radius": 128,
+  "one_shot": true,
+  "required_stage": "RAVEN_ROUTE_REVEALED",
+  "on_complete": {
+    "advance_to": ["RAVEN_DEFEATED", "ACT_COMPLETE"],
+    "handlers": ["unlock_act_two"]
+  }
+}

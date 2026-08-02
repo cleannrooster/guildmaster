@@ -1,0 +1,7 @@
+{
+  "role": "civilian",
+  "profession": "laborer",
+  "faction": "independent_frontier",
+  "equipment_profile": "settlers:civilian",
+  "job_overlay": "settlers:textures/entity/overlays/civilian.png"
+}

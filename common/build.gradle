@@ -1,0 +1,27 @@
+architectury { common rootProject.enabled_platforms.split(',') }
+
+loom {
+    // Merged from Settlers: widens SinglePoolElement.template for structure classification.
+    accessWidenerPath = file("src/main/resources/campaign_core.accesswidener")
+}
+
+dependencies {
+    modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
+    modApi "dev.architectury:architectury:$rootProject.architectury_api_version"
+    modCompileOnly("maven.modrinth:immersive-messages-api:fabric-${rootProject.minecraft_version}-${rootProject.immersive_messages_version}") { transitive = false }
+    modCompileOnly "maven.modrinth:txnilib:fabric-${rootProject.minecraft_version}-${rootProject.txnilib_version}"
+
+    // Merged from Settlers.
+    // GeckoLib — compile common code against the Fabric variant for API access.
+    modCompileOnly "software.bernie.geckolib:geckolib-fabric-${rootProject.minecraft_version}:${rootProject.geckolib_version}"
+    // Cloth Config (common/Architectury variant) — config file + AutoConfig screen.
+    modApi "me.shedaniel.cloth:cloth-config:${rootProject.cloth_config_version}"
+
+    // Unit tests: JUnit 5 (settlement codecs, economy, production, schedule selection, tilesets).
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+test {
+    useJUnitPlatform()
+}

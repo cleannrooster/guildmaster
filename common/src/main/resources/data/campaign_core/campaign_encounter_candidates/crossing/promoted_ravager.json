@@ -1,0 +1,11 @@
+{
+  "slot": "campaign_core:washed_ashore/thrasher",
+  "entity": "minecraft:ravager",
+  "environment": { "environment": "generic" },
+  "weight": 60,
+  "variant": "underroad_beast",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.underroad_beast",
+  "boss_bar": true,
+  "suppress_native_drops": true,
+  "attributes": { "max_health": 200, "damage_multiplier": 1.0, "knockback_resistance": 0.8, "scale": 1.2 }
+}

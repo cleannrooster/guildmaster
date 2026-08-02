@@ -1,0 +1,8 @@
+{
+  "slots": {
+    "head": "minecraft:iron_helmet",
+    "chest": "minecraft:iron_chestplate",
+    "feet": "minecraft:leather_boots",
+    "mainhand": "minecraft:iron_sword"
+  }
+}

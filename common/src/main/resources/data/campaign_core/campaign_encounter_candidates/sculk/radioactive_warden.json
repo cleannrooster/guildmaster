@@ -1,0 +1,10 @@
+{
+  "slot": "campaign_core:washed_ashore/sculk_surface",
+  "required_mod": "sculks_of_arda",
+  "entity": "sculks_of_arda:radioactive_warden",
+  "weight": 90,
+  "variant": "assimilated_champion",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.assimilated_champion",
+  "boss_bar": true,
+  "attributes": { "max_health": 220, "damage_multiplier": 0.6, "knockback_resistance": 0.8 }
+}

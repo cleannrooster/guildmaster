@@ -1,0 +1,7 @@
+{
+  "items": [
+    { "item": "minecraft:crossbow", "amount": 1 },
+    { "item": "minecraft:fire_charge", "amount": 8 },
+    { "item": "minecraft:cooked_beef", "amount": 8 }
+  ]
+}

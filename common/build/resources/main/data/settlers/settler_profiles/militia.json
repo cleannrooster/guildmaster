@@ -1,0 +1,7 @@
+{
+  "role": "guard",
+  "profession": "militia",
+  "faction": "independent_frontier",
+  "equipment_profile": "settlers:militia",
+  "job_overlay": "settlers:textures/entity/overlays/militia.png"
+}

@@ -1,0 +1,37 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/road_end",
+  "role": "road",
+  "category": "roads",
+  "dimensions": [
+    9,
+    3,
+    11
+  ],
+  "description": "Hub-scale end road module.",
+  "capacity": {},
+  "connectors": [
+    {
+      "pos": [
+        4,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    },
+    {
+      "pos": [
+        4,
+        1,
+        10
+      ],
+      "facing": "south",
+      "target": "settlers:building",
+      "pool": "settlers:frontier_hub/decorations"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

@@ -1,0 +1,14 @@
+{
+  "structures": [
+    {
+      "structure": "settlers:frontier_hub",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "salt": 195837102,
+    "spacing": 40,
+    "separation": 12
+  }
+}

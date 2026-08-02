@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "campaign_core",
+  "version": "${version}",
+  "name": "Campaign Core",
+  "description": "A reusable, persistent campaign framework with a bundled Washed Ashore reference campaign.",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.campaigncore.fabric.CampaignCoreFabric"],
+    "client": ["dev.campaigncore.fabric.CampaignCoreFabricClient"],
+    "modmenu": ["dev.campaigncore.settlers.fabric.ModMenuIntegration"]
+  },
+  "mixins": ["campaign_core.mixins.json", "settlers.mixins.json"],
+  "depends": {
+    "fabricloader": ">=${fabric_loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=21",
+    "architectury": "*",
+    "fabric-api": "*",
+    "geckolib": ">=4.8",
+    "cloth-config": ">=15.0.0",
+    "sculk_and_scavenge": "*",
+    "immersivemessages": ">=1.0.18",
+    "txnilib": ">=1.0.24",
+    "forgeconfigapiport": ">=21.1.0"
+  },
+  "suggests": {
+    "modmenu": "*",
+    "frontier_armaments": "*"
+  }
+}

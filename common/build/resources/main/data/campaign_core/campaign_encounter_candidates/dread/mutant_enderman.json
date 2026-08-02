@@ -1,0 +1,11 @@
+{
+  "slot": "campaign_core:washed_ashore/consuming_dread",
+  "required_mod": "mutantmonsters",
+  "entity": "mutantmonsters:mutant_enderman",
+  "weight": 35,
+  "variant": "the_long_shadow",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.the_long_shadow",
+  "boss_bar": true,
+  "suppress_native_drops": true,
+  "attributes": { "max_health": 170, "damage_multiplier": 0.65, "knockback_resistance": 0.5, "follow_range": 48 }
+}

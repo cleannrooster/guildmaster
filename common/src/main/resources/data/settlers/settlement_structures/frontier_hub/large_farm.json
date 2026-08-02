@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/large_farm",
+  "role": "farm",
+  "category": "food",
+  "dimensions": [
+    25,
+    6,
+    25
+  ],
+  "description": "Crop field exceeding the 32-crop large-farm threshold.",
+  "capacity": {
+    "food_tiers": 3
+  },
+  "connectors": [
+    {
+      "pos": [
+        12,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

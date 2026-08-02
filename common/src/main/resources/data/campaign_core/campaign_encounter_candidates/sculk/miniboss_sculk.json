@@ -1,0 +1,9 @@
+{
+  "slot": "campaign_core:washed_ashore/sculk_surface",
+  "entity_tag": "campaign_core:washed_ashore/sculk",
+  "weight": 50,
+  "variant": "sculk_taken_exile",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.sculk_taken_exile",
+  "boss_bar": true,
+  "attributes": { "max_health": 210, "damage_multiplier": 0.8 }
+}

@@ -1,0 +1,16 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "graveyard:ghoul", "required": false },
+    { "id": "graveyard:revenant", "required": false },
+    { "id": "graveyard:nightmare", "required": false },
+    { "id": "graveyard:ghouling", "required": false },
+    { "id": "graveyard:reaper", "required": false },
+    { "id": "graveyard:wraith", "required": false },
+    { "id": "graveyard:acolyte", "required": false },
+    { "id": "graveyard:nameless_hanged", "required": false },
+    { "id": "graveyard:lich", "required": false },
+    { "id": "graveyard:corrupted_vindicator", "required": false },
+    { "id": "graveyard:corrupted_pillager", "required": false }
+  ]
+}

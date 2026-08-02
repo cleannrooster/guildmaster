@@ -1,0 +1,12 @@
+{
+  "slot": "campaign_core:washed_ashore/undertaker",
+  "required_mod": "graveyard",
+  "entity": "graveyard:ghoul",
+  "weight": 100,
+  "variant": "grave_eater",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.grave_eater",
+  "boss_bar": true,
+  "suppress_native_drops": true,
+  "campaign_loot_table": "campaign_core:washed_ashore/campaign/undertaker_reward",
+  "attributes": { "max_health": 100, "scale": 1.3, "damage_multiplier": 0.75, "knockback_resistance": 0.5 }
+}

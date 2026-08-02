@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "illagerinvasion:basher", "required": false },
+    { "id": "illagerinvasion:marauder", "required": false },
+    { "id": "illagerinvasion:provoker", "required": false }
+  ]
+}

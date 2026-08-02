@@ -1,0 +1,186 @@
+{
+  "washed_ashore": {
+    "channel": "story",
+    "translation": "message.campaign_core.washed_ashore.washed_ashore"
+  },
+  "inland": {
+    "channel": "objective",
+    "translation": "objective.campaign_core.washed_ashore.inland"
+  },
+  "graveyard": {
+    "channel": "objective",
+    "translation": "objective.campaign_core.washed_ashore.graveyard"
+  },
+  "undertaker_discovered": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.undertaker_discovered"
+  },
+  "undertaker_relocated": {
+    "channel": "completion",
+    "translation": "message.campaign_core.washed_ashore.undertaker_relocated"
+  },
+  "encounter_active": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.encounter_active"
+  },
+  "encounter_complete": {
+    "channel": "completion",
+    "translation": "message.campaign_core.washed_ashore.encounter_complete"
+  },
+  "regional": {
+    "channel": "objective",
+    "translation": "objective.campaign_core.washed_ashore.regional"
+  },
+  "return_graveyard": {
+    "channel": "objective",
+    "translation": "objective.campaign_core.washed_ashore.return_graveyard"
+  },
+  "respawn_relocated": {
+    "channel": "story",
+    "translation": "message.campaign_core.washed_ashore.respawn_relocated"
+  },
+  "raven_route": {
+    "channel": "announcement",
+    "translation": "message.campaign_core.washed_ashore.raven_route"
+  },
+  "act_complete": {
+    "channel": "completion",
+    "translation": "message.campaign_core.washed_ashore.act_complete"
+  },
+  "settlement_raid_begins": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.settlement_raid_begins"
+  },
+  "settlement_raid_repelled": {
+    "channel": "completion",
+    "translation": "message.campaign_core.washed_ashore.settlement_raid_repelled"
+  },
+  "dark_forest": {
+    "channel": "objective",
+    "translation": "objective.campaign_core.washed_ashore.dark_forest"
+  },
+  "other_settlement": {
+    "channel": "objective",
+    "translation": "objective.campaign_core.washed_ashore.other_settlement"
+  },
+  "crossing_route": {
+    "channel": "objective",
+    "translation": "objective.campaign_core.washed_ashore.crossing_route"
+  },
+  "forest_uneasy": {
+    "channel": "ambient",
+    "translation": "message.campaign_core.washed_ashore.forest_uneasy"
+  },
+  "forest_quiet": {
+    "channel": "ambient",
+    "translation": "message.campaign_core.washed_ashore.forest_quiet"
+  },
+  "prey_missing": {
+    "channel": "ambient",
+    "translation": "message.campaign_core.washed_ashore.prey_missing"
+  },
+  "dread_feeds_on_death": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.dread_feeds_on_death"
+  },
+  "dread_manifest": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.dread_manifest"
+  },
+  "crossing_found": {
+    "channel": "story",
+    "translation": "message.campaign_core.washed_ashore.crossing_found"
+  },
+  "investigate_crossing": {
+    "channel": "objective",
+    "translation": "objective.campaign_core.washed_ashore.investigate_crossing"
+  },
+  "crossing_progress": {
+    "channel": "ambient",
+    "translation": "message.campaign_core.washed_ashore.crossing_progress"
+  },
+  "thrasher_stirs": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.thrasher_stirs"
+  },
+  "crossing_horde_rises": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.crossing_horde_rises"
+  },
+  "crossing_wave": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.crossing_wave"
+  },
+  "crossing_horde_repelled": {
+    "channel": "completion",
+    "translation": "message.campaign_core.washed_ashore.crossing_horde_repelled"
+  },
+  "sculk_surface_found": {
+    "channel": "story",
+    "translation": "message.campaign_core.washed_ashore.sculk_surface_found"
+  },
+  "sculk_raven_rises": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.sculk_raven_rises"
+  },
+  "sculk_wave": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.sculk_wave"
+  },
+  "sculk_raven_defeated": {
+    "channel": "completion",
+    "translation": "message.campaign_core.washed_ashore.sculk_raven_defeated"
+  },
+  "recovered": {
+    "channel": "ambient",
+    "translation": "message.campaign_core.washed_ashore.recovered"
+  },
+  "world_preparation_failed": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.world_preparation_failed"
+  },
+  "world_preparation_degraded": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.world_preparation_degraded"
+  },
+  "future_settlement_site": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.future_settlement_site"
+  },
+  "hub_construction_started": {
+    "channel": "chat",
+    "translation": "message.campaign_core.washed_ashore.hub_construction_started"
+  },
+  "hub_construction_finished": {
+    "channel": "chat",
+    "translation": "message.campaign_core.washed_ashore.hub_construction_finished"
+  },
+  "hub_construction_join": {
+    "channel": "chat",
+    "translation": "message.campaign_core.washed_ashore.hub_construction_join"
+  },
+  "quest_dark_forest": {
+    "channel": "quest",
+    "translation": "objective.campaign_core.washed_ashore.dark_forest"
+  },
+  "quest_show_available": {
+    "channel": "quest",
+    "translation": "objective.campaign_core.washed_ashore.show_available_quests"
+  },
+  "quest_show_available_complete": {
+    "channel": "quest",
+    "translation": "objective.campaign_core.washed_ashore.show_available_quests_complete"
+  },
+  "quest_devils_crossing": {
+    "channel": "quest",
+    "translation": "objective.campaign_core.washed_ashore.devils_crossing_summary"
+  },
+  "quest_distant_settlement": {
+    "channel": "quest",
+    "translation": "objective.campaign_core.washed_ashore.distant_settlement_summary"
+  },
+  "no_available_quests": {
+    "channel": "quest",
+    "translation": "message.campaign_core.washed_ashore.no_available_quests"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "rules": [
+    { "contains": "town_center", "role": "plaza" },
+    { "contains": "roads/", "role": "road" },
+    { "contains": "jobsite/smith", "role": "workshop" },
+    { "contains": "jobsite/mason", "role": "workshop" },
+    { "contains": "jobsite/fishing_hut", "role": "workshop" },
+    { "contains": "jobsite/butcher", "role": "processing" },
+    { "contains": "jobsite/library", "role": "records" },
+    { "contains": "jobsite/cartography", "role": "records" },
+    { "contains": "jobsite/chemist", "role": "infirmary" },
+    { "contains": "jobsite/shepherd", "role": "pasture" },
+    { "contains": "jobsite/pen", "role": "pasture" },
+    { "contains": "jobsite/farm", "role": "farm" },
+    { "contains": "house/big", "role": "authority" },
+    { "contains": "house/med", "role": "residence" },
+    { "contains": "house/small", "role": "residence" }
+  ]
+}

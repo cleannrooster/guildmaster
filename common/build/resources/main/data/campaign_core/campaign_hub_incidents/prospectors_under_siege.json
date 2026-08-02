@@ -1,0 +1,10 @@
+{
+  "tier": 2, "weight": 10, "duration_ticks": 18000,
+  "objective": "kill_group", "spawn": "approaching_hub",
+  "entities": ["minecraft:zombie", "minecraft:husk", "minecraft:skeleton"],
+  "count": 5, "minimum_distance": 44, "maximum_distance": 72,
+  "special": {
+    "protected_entity": "settlers:settler", "protected_count": 6,
+    "minimum_survivors": 2, "waves": 3, "wave_interval_ticks": 120
+  }
+}

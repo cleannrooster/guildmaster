@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/decoration_market",
+  "role": "auxiliary",
+  "category": "decorations",
+  "dimensions": [
+    13,
+    6,
+    11
+  ],
+  "description": "Large market landmark placeholder.",
+  "capacity": {},
+  "connectors": [
+    {
+      "pos": [
+        6,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

@@ -1,0 +1,10 @@
+{
+  "tier": 2, "weight": 8, "duration_ticks": 18000,
+  "objective": "kill_leader", "spawn": "around_hub",
+  "entities": ["sculk_and_scavenge:undertaker"], "count": 1,
+  "minimum_distance": 4, "maximum_distance": 10,
+  "special": {
+    "location_slot": "graveyard",
+    "attributes": { "max_health": 180, "damage_multiplier": 1.25, "armor": 8 }
+  }
+}

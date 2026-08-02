@@ -1,0 +1,108 @@
+{
+  "rules": [
+    {
+      "contains": "road_cross_intersection",
+      "role": "road"
+    },
+    {
+      "contains": "road_straight_short",
+      "role": "road"
+    },
+    {
+      "contains": "road_t_intersection",
+      "role": "road"
+    },
+    {
+      "contains": "decoration_monument",
+      "role": "auxiliary"
+    },
+    {
+      "contains": "road_straight_long",
+      "role": "road"
+    },
+    {
+      "contains": "decoration_market",
+      "role": "auxiliary"
+    },
+    {
+      "contains": "decoration_garden",
+      "role": "auxiliary"
+    },
+    {
+      "contains": "decoration_well",
+      "role": "auxiliary"
+    },
+    {
+      "contains": "communal_space",
+      "role": "communal_dining"
+    },
+    {
+      "contains": "residence_01",
+      "role": "residence"
+    },
+    {
+      "contains": "residence_02",
+      "role": "residence"
+    },
+    {
+      "contains": "residence_03",
+      "role": "residence"
+    },
+    {
+      "contains": "residence_04",
+      "role": "residence"
+    },
+    {
+      "contains": "fishing_site",
+      "role": "water"
+    },
+    {
+      "contains": "reeves_hall",
+      "role": "authority"
+    },
+    {
+      "contains": "road_corner",
+      "role": "road"
+    },
+    {
+      "contains": "small_plaza",
+      "role": "plaza"
+    },
+    {
+      "contains": "guard_post",
+      "role": "guard_post"
+    },
+    {
+      "contains": "large_farm",
+      "role": "farm"
+    },
+    {
+      "contains": "infirmary",
+      "role": "infirmary"
+    },
+    {
+      "contains": "workshop",
+      "role": "workshop"
+    },
+    {
+      "contains": "road_end",
+      "role": "road"
+    },
+    {
+      "contains": "granary",
+      "role": "granary"
+    },
+    {
+      "contains": "pasture",
+      "role": "pasture"
+    },
+    {
+      "contains": "shrine",
+      "role": "shrine"
+    },
+    {
+      "contains": "plaza",
+      "role": "plaza"
+    }
+  ]
+}

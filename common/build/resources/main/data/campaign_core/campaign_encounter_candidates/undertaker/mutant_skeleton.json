@@ -1,0 +1,11 @@
+{
+  "slot": "campaign_core:washed_ashore/undertaker",
+  "required_mod": "mutantmonsters",
+  "entity": "mutantmonsters:mutant_skeleton",
+  "weight": 35,
+  "variant": "restless_guardian",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.restless_guardian",
+  "boss_bar": true,
+  "suppress_native_drops": true,
+  "attributes": { "max_health": 110, "damage_multiplier": 0.5, "knockback_resistance": 0.5 }
+}

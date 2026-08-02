@@ -1,0 +1,7 @@
+{
+  "items": [
+    { "item": "minecraft:bow", "amount": 1 },
+    { "item": "minecraft:arrow", "amount": 32 },
+    { "item": "minecraft:cooked_beef", "amount": 8 }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "items": [
+    { "item": "minecraft:stone_sword", "amount": 1 },
+    { "item": "minecraft:shield", "amount": 1 },
+    { "item": "minecraft:cooked_beef", "amount": 8 }
+  ]
+}

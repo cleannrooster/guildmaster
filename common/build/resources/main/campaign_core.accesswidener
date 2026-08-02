@@ -1,0 +1,4 @@
+accessWidener v2 named
+# Merged from Settlers: structure classification reads the template id straight off village
+# jigsaw pieces (LegacySinglePoolElement extends SinglePoolElement, so this covers both).
+accessible field net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement template Lcom/mojang/datafixers/util/Either;

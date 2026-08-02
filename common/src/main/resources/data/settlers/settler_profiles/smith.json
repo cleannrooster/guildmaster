@@ -1,0 +1,7 @@
+{
+  "role": "worker",
+  "profession": "smith",
+  "faction": "independent_frontier",
+  "equipment_profile": "settlers:smith",
+  "job_overlay": "settlers:textures/entity/overlays/smith.png"
+}

@@ -1,0 +1,6 @@
+{
+  "slots": {
+    "chest": "minecraft:leather_chestplate",
+    "mainhand": "minecraft:iron_axe"
+  }
+}

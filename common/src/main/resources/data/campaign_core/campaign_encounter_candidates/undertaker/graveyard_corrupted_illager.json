@@ -1,0 +1,10 @@
+{
+  "slot": "campaign_core:washed_ashore/undertaker",
+  "required_mod": "graveyard",
+  "entity": "graveyard:corrupted_vindicator",
+  "weight": 80,
+  "variant": "corrupted_exile",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.corrupted_exile",
+  "boss_bar": true,
+  "attributes": { "max_health": 100, "damage_multiplier": 0.7, "armor": 2 }
+}

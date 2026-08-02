@@ -1,0 +1,19 @@
+{
+  "id": "campaign_core:washed_ashore/regional_boss_c",
+  "boss_entity": "minecraft:ravager",
+  "anchor": "other_settlement",
+  "activation_radius": 40,
+  "reset_radius": 96,
+  "one_shot": true,
+  "required_stage": "REGIONAL_OBJECTIVES",
+  "raid": [
+    { "entity": "rpg-minibosses:juggernaut", "count": 1 },
+    { "entity": "rpg-minibosses:minor_mercenary", "count": 2 },
+    { "entity": "rpg-minibosses:trickster", "count": 1 },
+    { "entity": "rpg-minibosses:minor_archmage_fire", "count": 1 }
+  ],
+  "on_complete": {
+    "message": "settlement_raid_repelled",
+    "handlers": ["regional_objectives_gate"]
+  }
+}

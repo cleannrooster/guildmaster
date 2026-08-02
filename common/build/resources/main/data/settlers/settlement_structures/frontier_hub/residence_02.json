@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/residence_02",
+  "role": "residence",
+  "category": "residences",
+  "dimensions": [
+    15,
+    10,
+    13
+  ],
+  "description": "Large placeholder residence with 6 bed anchors.",
+  "capacity": {
+    "beds": 6
+  },
+  "connectors": [
+    {
+      "pos": [
+        7,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

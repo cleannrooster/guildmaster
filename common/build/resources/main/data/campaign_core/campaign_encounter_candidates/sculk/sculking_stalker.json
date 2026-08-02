@@ -1,0 +1,10 @@
+{
+  "slot": "campaign_core:washed_ashore/sculk_surface",
+  "required_mod": "sculkexpansion",
+  "entity": "sculkexpansion:sculk_stalker",
+  "weight": 80,
+  "variant": "surface_stalker",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.surface_stalker",
+  "boss_bar": true,
+  "attributes": { "max_health": 200, "follow_range": 48 }
+}

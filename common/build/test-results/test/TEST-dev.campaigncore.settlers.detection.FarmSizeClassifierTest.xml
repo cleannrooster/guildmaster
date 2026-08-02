@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.campaigncore.settlers.detection.FarmSizeClassifierTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-08-02T22:28:42.181Z" hostname="TOASTER" time="0.01">
+  <properties/>
+  <testcase name="emptyFarmlandReceivesHalfCredit()" classname="dev.campaigncore.settlers.detection.FarmSizeClassifierTest" time="0.002"/>
+  <testcase name="eightFishingSitesProvideOneHundredFortyFourFoodCapacity()" classname="dev.campaigncore.settlers.detection.FarmSizeClassifierTest" time="0.004"/>
+  <testcase name="farmlandBlocksMapToIntendedAbstractTiles()" classname="dev.campaigncore.settlers.detection.FarmSizeClassifierTest" time="0.001"/>
+  <testcase name="eachAbstractTierSupportsSixResidents()" classname="dev.campaigncore.settlers.detection.FarmSizeClassifierTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

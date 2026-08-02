@@ -1,0 +1,11 @@
+{
+  "tier": 3, "weight": 5, "duration_ticks": 18000,
+  "objective": "battle", "spawn": "around_hub",
+  "entities": ["sculk_and_scavenge:sculken_raven"], "count": 1,
+  "minimum_distance": 64, "maximum_distance": 88,
+  "special": {
+    "opponents": ["minecraft:warden"], "opponent_count": 1,
+    "attributes": { "max_health": 150, "damage_multiplier": 0.8 },
+    "opponent_attributes": { "max_health": 130, "damage_multiplier": 0.22, "armor": 4 }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "initial_stage": "campaign_core:washed_ashore/stage/not_started",
+  "stages": [
+    "campaign_core:washed_ashore/stage/not_started",
+    "campaign_core:washed_ashore/stage/washed_ashore",
+    "campaign_core:washed_ashore/stage/guide_found",
+    "campaign_core:washed_ashore/stage/undertaker_discovered",
+    "campaign_core:washed_ashore/stage/undertaker_defeated",
+    "campaign_core:washed_ashore/stage/settlement_reached",
+    "campaign_core:washed_ashore/stage/regional_objectives",
+    "campaign_core:washed_ashore/stage/raven_route_revealed",
+    "campaign_core:washed_ashore/stage/raven_defeated",
+    "campaign_core:washed_ashore/stage/act_complete"
+  ],
+  "objectives": [
+    "campaign_core:washed_ashore/objective/dread",
+    "campaign_core:washed_ashore/objective/devils_crossing"
+  ],
+  "locations": [
+    "campaign_core:washed_ashore/location/beach",
+    "campaign_core:washed_ashore/location/guide",
+    "campaign_core:washed_ashore/location/graveyard",
+    "campaign_core:washed_ashore/location/settlement",
+    "campaign_core:washed_ashore/location/dark_forest",
+    "campaign_core:washed_ashore/location/devils_crossing",
+    "campaign_core:washed_ashore/location/other_settlement",
+    "campaign_core:washed_ashore/location/raven"
+  ],
+  "encounters": [
+    "campaign_core:washed_ashore/undertaker",
+    "campaign_core:washed_ashore/consuming_dread",
+    "campaign_core:washed_ashore/thrasher",
+    "campaign_core:washed_ashore/regional_boss_c",
+    "campaign_core:washed_ashore/sculken_raven"
+  ],
+  "hooks": [
+    "campaign_core:washed_ashore/prone_recovery",
+    "campaign_core:washed_ashore/dread_manifestation",
+    "campaign_core:washed_ashore/settlers_placement"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "sculks_of_arda:sculk_boss_1_t", "required": false },
+    { "id": "sculks_of_arda:sculk_ghost", "required": false },
+    { "id": "sculks_of_arda:radioactive_warden", "required": false },
+    { "id": "sculkexpansion:sculk_stalker", "required": false },
+    { "id": "sculkexpansion:gauger", "required": false },
+    { "id": "sculkexpansion:sculk_beast", "required": false },
+    { "id": "zombie_expansion:warden_zombie", "required": false }
+  ]
+}

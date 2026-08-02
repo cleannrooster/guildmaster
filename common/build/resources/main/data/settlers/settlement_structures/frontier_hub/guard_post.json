@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/guard_post",
+  "role": "guard_post",
+  "category": "civic",
+  "dimensions": [
+    13,
+    9,
+    11
+  ],
+  "description": "Night watch and muster building.",
+  "capacity": {},
+  "connectors": [
+    {
+      "pos": [
+        6,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

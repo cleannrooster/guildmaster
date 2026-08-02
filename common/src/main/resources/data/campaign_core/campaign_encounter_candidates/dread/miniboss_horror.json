@@ -1,0 +1,9 @@
+{
+  "slot": "campaign_core:washed_ashore/consuming_dread",
+  "entity_tag": "campaign_core:washed_ashore/horror",
+  "weight": 50,
+  "variant": "possessed_exile",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.possessed_exile",
+  "boss_bar": true,
+  "attributes": { "max_health": 160, "damage_multiplier": 0.85 }
+}

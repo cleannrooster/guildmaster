@@ -1,0 +1,77 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/plaza",
+  "role": "plaza",
+  "category": "roads",
+  "dimensions": [
+    25,
+    6,
+    25
+  ],
+  "description": "Primary civic plaza with six controlled settlement exits.",
+  "capacity": {},
+  "connectors": [
+    {
+      "pos": [
+        6,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/primary_roads"
+    },
+    {
+      "pos": [
+        18,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/primary_roads"
+    },
+    {
+      "pos": [
+        6,
+        1,
+        24
+      ],
+      "facing": "south",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/primary_roads"
+    },
+    {
+      "pos": [
+        18,
+        1,
+        24
+      ],
+      "facing": "south",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/primary_roads"
+    },
+    {
+      "pos": [
+        0,
+        1,
+        12
+      ],
+      "facing": "west",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/primary_roads"
+    },
+    {
+      "pos": [
+        24,
+        1,
+        12
+      ],
+      "facing": "east",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/primary_roads"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

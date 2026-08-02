@@ -1,0 +1,12 @@
+{
+  "_comment": "Base TACZ has no bandit mob entities (only a target minecart), so this human-bandit raid uses vanilla raiders. If a bandit-mob mod is installed, repoint these to its entities and add its required_mod.",
+  "slot": "campaign_core:washed_ashore/regional_boss_c",
+  "weight": 80,
+  "variant": "human_bandit_raid",
+  "raid": [
+    { "entity": "minecraft:vindicator", "count": 1, "role": "commander" },
+    { "entity": "minecraft:pillager", "count": 4, "role": "ranged" },
+    { "entity": "minecraft:vindicator", "count": 2, "role": "frontline" },
+    { "entity": "minecraft:witch", "count": 1, "role": "support" }
+  ]
+}

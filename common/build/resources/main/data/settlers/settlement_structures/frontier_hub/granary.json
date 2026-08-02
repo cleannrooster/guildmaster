@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/granary",
+  "role": "granary",
+  "category": "industry",
+  "dimensions": [
+    15,
+    10,
+    13
+  ],
+  "description": "Bulk food storage and reserve.",
+  "capacity": {},
+  "connectors": [
+    {
+      "pos": [
+        7,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

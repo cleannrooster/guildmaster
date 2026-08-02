@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/road_cross_intersection",
+  "role": "road",
+  "category": "roads",
+  "dimensions": [
+    13,
+    3,
+    13
+  ],
+  "description": "Hub-scale cross road module.",
+  "capacity": {},
+  "connectors": [
+    {
+      "pos": [
+        6,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    },
+    {
+      "pos": [
+        6,
+        1,
+        12
+      ],
+      "facing": "south",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    },
+    {
+      "pos": [
+        0,
+        1,
+        6
+      ],
+      "facing": "west",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    },
+    {
+      "pos": [
+        12,
+        1,
+        6
+      ],
+      "facing": "east",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

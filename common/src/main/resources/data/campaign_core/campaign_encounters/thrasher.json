@@ -1,0 +1,33 @@
+{
+  "id": "campaign_core:washed_ashore/thrasher",
+  "boss_entity": "sculk_and_scavenge:thrasher",
+  "anchor": "devils_crossing",
+  "activation_radius": 28,
+  "reset_radius": 112,
+  "one_shot": true,
+  "required_stage": "REGIONAL_OBJECTIVES",
+  "activation": {
+    "radius": 22,
+    "discovery_radius": 56,
+    "fill_up": 4,
+    "fill_down": -1,
+    "threshold": 100,
+    "milestones": [
+      { "mode": "bucket", "step": 25, "message": "crossing_progress", "pass_level": true }
+    ],
+    "on_full": { "action": "raise_crossing_horde" }
+  },
+  "horde": {
+    "spawn_radius": 9,
+    "scan_radius": 64,
+    "waves": [
+      { "members": [ { "entity": "minecraft:husk", "count": 4 }, { "entity": "minecraft:skeleton", "count": 2 } ] },
+      { "members": [ { "entity": "minecraft:husk", "count": 5 }, { "entity": "minecraft:skeleton", "count": 3 } ] },
+      { "members": [ { "entity": "minecraft:husk", "count": 7 }, { "entity": "minecraft:skeleton", "count": 4 } ] }
+    ]
+  },
+  "on_complete": {
+    "message": "crossing_horde_repelled",
+    "handlers": ["complete_crossing_quest", "regional_objectives_gate"]
+  }
+}

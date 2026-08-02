@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/reeves_hall",
+  "role": "authority",
+  "category": "civic",
+  "dimensions": [
+    19,
+    12,
+    15
+  ],
+  "description": "Administrative hall and emergency shelter.",
+  "capacity": {},
+  "connectors": [
+    {
+      "pos": [
+        9,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

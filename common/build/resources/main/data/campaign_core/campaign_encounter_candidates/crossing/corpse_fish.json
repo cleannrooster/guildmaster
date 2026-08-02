@@ -1,0 +1,11 @@
+{
+  "slot": "campaign_core:washed_ashore/thrasher",
+  "required_mod": "born_in_chaos_v1",
+  "entity": "born_in_chaos_v1:corpse_fish",
+  "environment": { "environment": "water" },
+  "weight": 80,
+  "variant": "underroad_beast",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.underroad_beast",
+  "boss_bar": true,
+  "attributes": { "max_health": 190 }
+}

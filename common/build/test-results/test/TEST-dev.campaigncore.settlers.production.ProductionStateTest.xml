@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.campaigncore.settlers.production.ProductionStateTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-08-02T22:28:42.282Z" hostname="TOASTER" time="0.006">
+  <properties/>
+  <testcase name="copyConstructorIsDeep()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.0"/>
+  <testcase name="storedAccumulates()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.001"/>
+  <testcase name="consumeStoredRejectsNegativeAndNonFinite()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.001"/>
+  <testcase name="rejectsNegativeAndNonFinite()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.001"/>
+  <testcase name="consumeStoredSubtractsUpToAvailable()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.001"/>
+  <testcase name="progressAccumulates()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.0"/>
+  <testcase name="consumeProgressUnitsFloorsAndLeavesRemainder()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

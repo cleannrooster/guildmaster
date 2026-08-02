@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "settlers:block/wagon_repair_bench"
+  }
+}

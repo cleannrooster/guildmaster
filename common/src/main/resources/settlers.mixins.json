@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "dev.campaigncore.settlers.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "NearestAttackableTargetGoalMixin",
+    "SinglePoolElementAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

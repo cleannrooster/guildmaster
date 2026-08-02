@@ -1,0 +1,10 @@
+{
+  "slot": "campaign_core:washed_ashore/consuming_dread",
+  "entity": "minecraft:enderman",
+  "weight": 40,
+  "variant": "the_long_shadow",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.the_long_shadow",
+  "boss_bar": true,
+  "suppress_native_drops": true,
+  "attributes": { "max_health": 140, "damage_multiplier": 1.2, "scale": 1.4, "knockback_resistance": 0.6, "follow_range": 48 }
+}

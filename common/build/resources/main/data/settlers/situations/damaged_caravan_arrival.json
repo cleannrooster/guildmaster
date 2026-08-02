@@ -1,0 +1,16 @@
+{
+  "travelers": [
+    { "profile": "settlers:caravan_trader", "count": 2 }
+  ],
+  "props": [
+    { "block": "minecraft:hay_block", "offset": [1, 0, 0] },
+    { "block": "minecraft:oak_fence", "offset": [1, 1, 0] },
+    { "block": "minecraft:barrel", "offset": [-1, 0, 1] },
+    { "block": "minecraft:cobweb", "offset": [0, 1, -1] }
+  ],
+  "barks": [
+    "A damaged caravan limps into {settlement}, its cargo scattered across the road.",
+    "Travelers from a wrecked caravan have taken shelter at {settlement}."
+  ],
+  "despawn_ticks": 24000
+}

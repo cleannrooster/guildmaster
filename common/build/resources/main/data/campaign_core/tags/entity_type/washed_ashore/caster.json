@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "rpg-minibosses:minor_archmage_fire", "required": false },
+    { "id": "born_in_chaos_v1:supreme_bonescaller", "required": false },
+    { "id": "graveyard:corrupted_pillager", "required": false }
+  ]
+}

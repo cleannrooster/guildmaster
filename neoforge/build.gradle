@@ -1,0 +1,34 @@
+plugins { id 'com.gradleup.shadow' }
+architectury {
+    platformSetupLoomIde()
+    neoForge()
+}
+loom {
+    // Share the merged access widener defined in :common.
+    accessWidenerPath = project(":common").loom.accessWidenerPath
+}
+configurations {
+    common { canBeResolved = true; canBeConsumed = false }
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentNeoForge.extendsFrom common
+    shadowBundle { canBeResolved = true; canBeConsumed = false }
+}
+dependencies {
+    neoForge "net.neoforged:neoforge:$rootProject.neoforge_version"
+    modImplementation "dev.architectury:architectury-neoforge:$rootProject.architectury_api_version"
+    modImplementation("maven.modrinth:immersive-messages-api:neoforge-${rootProject.minecraft_version}-${rootProject.immersive_messages_version}") { transitive = false }
+    modImplementation "maven.modrinth:txnilib:neoforge-${rootProject.minecraft_version}-${rootProject.txnilib_version}"
+    // Merged from Settlers.
+    modImplementation "software.bernie.geckolib:geckolib-neoforge-${rootProject.minecraft_version}:${rootProject.geckolib_version}"
+    modApi "me.shedaniel.cloth:cloth-config-neoforge:${rootProject.cloth_config_version}"
+    common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
+    shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')
+}
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/neoforge.mods.toml') { expand(version: project.version.toString().split('\\+')[0],
+            minecraft_version: rootProject.minecraft_version, neoforge_version: rootProject.neoforge_version) }
+}
+shadowJar { configurations = [project.configurations.shadowBundle]; archiveClassifier = 'dev-shadow' }
+remapJar { input.set shadowJar.archiveFile; archiveClassifier = null; dependsOn shadowJar }

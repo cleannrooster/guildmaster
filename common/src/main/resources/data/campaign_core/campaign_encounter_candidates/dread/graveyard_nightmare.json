@@ -1,0 +1,10 @@
+{
+  "slot": "campaign_core:washed_ashore/consuming_dread",
+  "required_mod": "graveyard",
+  "entity": "graveyard:nightmare",
+  "weight": 80,
+  "variant": "the_long_shadow",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.the_long_shadow",
+  "boss_bar": true,
+  "attributes": { "max_health": 150 }
+}

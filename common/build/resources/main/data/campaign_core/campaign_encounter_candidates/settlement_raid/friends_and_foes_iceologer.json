@@ -1,0 +1,10 @@
+{
+  "slot": "campaign_core:washed_ashore/regional_boss_c",
+  "required_mod": "friendsandfoes",
+  "entity": "friendsandfoes:iceologer",
+  "environment": { "environment": "cold" },
+  "weight": 40,
+  "variant": "mechanical_siege",
+  "boss_bar": true,
+  "attributes": { "max_health": 150, "damage_multiplier": 0.8, "follow_range": 48 }
+}

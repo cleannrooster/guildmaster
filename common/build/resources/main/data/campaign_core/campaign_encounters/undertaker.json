@@ -1,0 +1,12 @@
+{
+  "id": "campaign_core:washed_ashore/undertaker",
+  "boss_entity": "sculk_and_scavenge:undertaker",
+  "anchor": "graveyard",
+  "activation_radius": 28,
+  "reset_radius": 72,
+  "one_shot": true,
+  "required_stage": "WASHED_ASHORE",
+  "on_complete": {
+    "advance_to": ["UNDERTAKER_DEFEATED"]
+  }
+}

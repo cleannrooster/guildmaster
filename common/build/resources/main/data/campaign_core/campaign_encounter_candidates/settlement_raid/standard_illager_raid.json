@@ -1,0 +1,12 @@
+{
+  "slot": "campaign_core:washed_ashore/regional_boss_c",
+  "weight": 100,
+  "variant": "standard_illager_raid",
+  "raid": [
+    { "entity": "minecraft:evoker", "count": 1, "role": "commander" },
+    { "entity": "minecraft:vindicator", "count": 3, "role": "frontline" },
+    { "entity": "minecraft:pillager", "count": 3, "role": "ranged" },
+    { "entity": "minecraft:witch", "count": 1, "role": "support" },
+    { "entity": "minecraft:ravager", "count": 1, "role": "heavy" }
+  ]
+}

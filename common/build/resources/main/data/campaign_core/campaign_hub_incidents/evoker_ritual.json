@@ -1,0 +1,7 @@
+{
+  "tier": 3, "weight": 12, "duration_ticks": 15000,
+  "objective": "kill_group", "spawn": "around_hub",
+  "entities": ["minecraft:evoker"], "count": 4,
+  "minimum_distance": 56, "maximum_distance": 88,
+  "special": { "attributes": { "max_health": 42, "armor": 4 } }
+}

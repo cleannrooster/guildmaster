@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/road_straight_long",
+  "role": "road",
+  "category": "roads",
+  "dimensions": [
+    5,
+    3,
+    27
+  ],
+  "description": "Hub-scale straight road module.",
+  "capacity": {},
+  "connectors": [
+    {
+      "pos": [
+        2,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    },
+    {
+      "pos": [
+        2,
+        1,
+        26
+      ],
+      "facing": "south",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    },
+    {
+      "pos": [
+        0,
+        1,
+        13
+      ],
+      "facing": "west",
+      "target": "settlers:building",
+      "pool": "settlers:frontier_hub/food"
+    },
+    {
+      "pos": [
+        4,
+        1,
+        13
+      ],
+      "facing": "east",
+      "target": "settlers:building",
+      "pool": "settlers:frontier_hub/residences"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

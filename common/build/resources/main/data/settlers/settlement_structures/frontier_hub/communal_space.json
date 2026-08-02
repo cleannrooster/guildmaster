@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/communal_space",
+  "role": "communal_dining",
+  "category": "civic",
+  "dimensions": [
+    17,
+    7,
+    15
+  ],
+  "description": "Open communal meal and gathering court.",
+  "capacity": {},
+  "connectors": [
+    {
+      "pos": [
+        8,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

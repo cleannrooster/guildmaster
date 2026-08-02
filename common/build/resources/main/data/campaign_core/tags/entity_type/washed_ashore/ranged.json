@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "rpg-minibosses:minor_archmage_fire", "required": false },
+    { "id": "illagerinvasion:marauder", "required": false }
+  ]
+}

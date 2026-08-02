@@ -1,0 +1,11 @@
+{
+  "slot": "campaign_core:washed_ashore/consuming_dread",
+  "required_mod": "born_in_chaos_v1",
+  "entity": "born_in_chaos_v1:nightmare_stalker",
+  "weight": 100,
+  "variant": "the_hollow",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.the_hollow",
+  "boss_bar": true,
+  "suppress_native_drops": true,
+  "attributes": { "max_health": 170, "damage_multiplier": 0.9, "follow_range": 48 }
+}

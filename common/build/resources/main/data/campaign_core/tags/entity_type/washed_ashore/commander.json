@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "rpg-minibosses:juggernaut", "required": false },
+    { "id": "minecraft:evoker", "required": false },
+    { "id": "illagerinvasion:basher", "required": false }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "graveyard:corrupted_vindicator", "required": false },
+    { "id": "graveyard:ghouling", "required": false },
+    { "id": "born_in_chaos_v1:door_knight", "required": false },
+    { "id": "born_in_chaos_v1:fallen_knight", "required": false },
+    { "id": "born_in_chaos_v1:supreme_bonescaller", "required": false },
+    { "id": "born_in_chaos_v1:lifestealer", "required": false },
+    { "id": "mutantmonsters:mutant_zombie", "required": false },
+    { "id": "rpg-minibosses:minor_mercenary", "required": false },
+    { "id": "rpg-minibosses:trickster", "required": false }
+  ]
+}

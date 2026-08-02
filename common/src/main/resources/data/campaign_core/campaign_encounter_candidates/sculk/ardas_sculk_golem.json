@@ -1,0 +1,10 @@
+{
+  "slot": "campaign_core:washed_ashore/sculk_surface",
+  "required_mod": "sculks_of_arda",
+  "entity": "sculks_of_arda:sculk_boss_1_t",
+  "weight": 100,
+  "variant": "sculk_colossus",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.sculk_colossus",
+  "boss_bar": true,
+  "attributes": { "max_health": 220, "damage_multiplier": 0.8, "scale": 1.3 }
+}

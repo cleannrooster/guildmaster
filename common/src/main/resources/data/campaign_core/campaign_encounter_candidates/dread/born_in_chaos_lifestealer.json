@@ -1,0 +1,10 @@
+{
+  "slot": "campaign_core:washed_ashore/consuming_dread",
+  "required_mod": "born_in_chaos_v1",
+  "entity": "born_in_chaos_v1:lifestealer",
+  "weight": 80,
+  "variant": "dread_made_flesh",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.dread_made_flesh",
+  "boss_bar": true,
+  "attributes": { "max_health": 150, "damage_multiplier": 0.9 }
+}

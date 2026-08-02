@@ -1,0 +1,51 @@
+{
+  "format": 1,
+  "id": "settlers:frontier_hub",
+  "display_name": "Frontier Hub (Placeholder)",
+  "start_pool": "settlers:frontier_hub/roads",
+  "start_template": "settlers:frontier_hub/plaza",
+  "scale": "hub",
+  "scan_margin": 2,
+  "activity_radius": 8,
+  "categories": {
+    "residences": [
+      "settlers:frontier_hub/residence_01",
+      "settlers:frontier_hub/residence_02",
+      "settlers:frontier_hub/residence_03",
+      "settlers:frontier_hub/residence_04"
+    ],
+    "civic": [
+      "settlers:frontier_hub/reeves_hall",
+      "settlers:frontier_hub/guard_post",
+      "settlers:frontier_hub/shrine",
+      "settlers:frontier_hub/infirmary",
+      "settlers:frontier_hub/communal_space"
+    ],
+    "industry": [
+      "settlers:frontier_hub/workshop",
+      "settlers:frontier_hub/workshop_mirrored",
+      "settlers:frontier_hub/granary"
+    ],
+    "food": [
+      "settlers:frontier_hub/large_farm",
+      "settlers:frontier_hub/pasture",
+      "settlers:frontier_hub/fishing_site"
+    ],
+    "roads": [
+      "settlers:frontier_hub/road_straight_short",
+      "settlers:frontier_hub/road_straight_long",
+      "settlers:frontier_hub/road_corner",
+      "settlers:frontier_hub/road_t_intersection",
+      "settlers:frontier_hub/road_cross_intersection",
+      "settlers:frontier_hub/road_end",
+      "settlers:frontier_hub/plaza",
+      "settlers:frontier_hub/small_plaza"
+    ],
+    "decorations": [
+      "settlers:frontier_hub/decoration_well",
+      "settlers:frontier_hub/decoration_market",
+      "settlers:frontier_hub/decoration_monument",
+      "settlers:frontier_hub/decoration_garden"
+    ]
+  }
+}

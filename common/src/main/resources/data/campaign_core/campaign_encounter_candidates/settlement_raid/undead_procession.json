@@ -1,0 +1,12 @@
+{
+  "slot": "campaign_core:washed_ashore/regional_boss_c",
+  "required_mod": "born_in_chaos_v1",
+  "weight": 70,
+  "variant": "undead_procession",
+  "raid": [
+    { "entity": "born_in_chaos_v1:supreme_bonescaller", "count": 1, "role": "commander" },
+    { "entity": "born_in_chaos_v1:baby_skeleton", "count": 4, "role": "frontline" },
+    { "entity": "born_in_chaos_v1:fallen_knight", "count": 2, "role": "frontline" },
+    { "entity": "born_in_chaos_v1:lifestealer", "count": 1, "role": "specialist" }
+  ]
+}

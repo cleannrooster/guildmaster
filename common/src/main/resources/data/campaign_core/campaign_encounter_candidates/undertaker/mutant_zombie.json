@@ -1,0 +1,11 @@
+{
+  "slot": "campaign_core:washed_ashore/undertaker",
+  "required_mod": "mutantmonsters",
+  "entity": "mutantmonsters:mutant_zombie",
+  "weight": 40,
+  "variant": "grave_robber",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.grave_robber",
+  "boss_bar": true,
+  "suppress_native_drops": true,
+  "attributes": { "max_health": 110, "damage_multiplier": 0.5, "knockback_resistance": 0.6 }
+}

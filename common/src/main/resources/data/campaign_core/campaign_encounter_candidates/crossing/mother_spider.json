@@ -1,0 +1,11 @@
+{
+  "slot": "campaign_core:washed_ashore/thrasher",
+  "required_mod": "born_in_chaos_v1",
+  "entity": "born_in_chaos_v1:mother_spider",
+  "environment": { "environment": "forest" },
+  "weight": 90,
+  "variant": "brood_nest",
+  "display_name": "encounter.campaign_core.washed_ashore.variant.brood_nest",
+  "boss_bar": true,
+  "attributes": { "max_health": 200, "scale": 1.3, "damage_multiplier": 0.8 }
+}

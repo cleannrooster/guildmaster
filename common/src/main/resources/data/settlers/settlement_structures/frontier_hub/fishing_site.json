@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "template": "settlers:frontier_hub/fishing_site",
+  "role": "water",
+  "category": "food",
+  "dimensions": [
+    23,
+    8,
+    19
+  ],
+  "description": "Waterfront pier with eight fishing barrels.",
+  "capacity": {
+    "fishing_sites": 8
+  },
+  "connectors": [
+    {
+      "pos": [
+        11,
+        1,
+        0
+      ],
+      "facing": "north",
+      "target": "settlers:street",
+      "pool": "settlers:frontier_hub/roads"
+    }
+  ],
+  "scan_margin": 2,
+  "activity_radius": 8
+}

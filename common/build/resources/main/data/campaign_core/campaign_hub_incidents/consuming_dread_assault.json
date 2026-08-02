@@ -1,0 +1,7 @@
+{
+  "tier": 3, "weight": 7, "duration_ticks": 18000,
+  "objective": "kill_leader", "spawn": "approaching_hub",
+  "entities": ["sculk_and_scavenge:consuming_dread"], "count": 1,
+  "minimum_distance": 80, "maximum_distance": 112,
+  "special": { "attributes": { "max_health": 190, "damage_multiplier": 1.1 } }
+}
