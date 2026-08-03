@@ -77,11 +77,19 @@ public final class FrontierHubRuntimePlacer {
     public static StartResult enqueue(
             CommandSourceStack source, BlockPos requestedPosition, boolean ruined
     ) {
+        return enqueue(source, requestedPosition, ruined, 0);
+    }
+
+    public static StartResult enqueue(
+            CommandSourceStack source, BlockPos requestedPosition, boolean ruined,
+            int minimumSettlementClearance
+    ) {
         ResourceKey<Level> dimension = source.getLevel().dimension();
         if (ACTIVE_JOBS.containsKey(dimension)) {
             return StartResult.rejected("Another frontier hub placement is already active in this dimension.");
         }
-        ACTIVE_JOBS.put(dimension, new PlacementJob(source, requestedPosition, ruined));
+        ACTIVE_JOBS.put(dimension, new PlacementJob(
+                source, requestedPosition, ruined, Math.max(0, minimumSettlementClearance)));
         return StartResult.accepted();
     }
 
@@ -237,6 +245,21 @@ public final class FrontierHubRuntimePlacer {
 
         if (TerrainPlan.from(start).coreColumns().isEmpty()) {
             return Optional.of("The generated hub contained no terrain-fit-capable jigsaw pieces.");
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<String> validateSettlementClearance(
+            ServerLevel level, BoundingBox proposed, int clearance
+    ) {
+        long required=(long)clearance*clearance;
+        for(Settlement existing:SettlementManager.get(level).all()){
+            BoundingBox occupied=existing.bounds();
+            long dx=Math.max(0,Math.max(occupied.minX()-proposed.maxX(),proposed.minX()-occupied.maxX()));
+            long dz=Math.max(0,Math.max(occupied.minZ()-proposed.maxZ(),proposed.minZ()-occupied.maxZ()));
+            if(dx*dx+dz*dz<required)return Optional.of(
+                    "The generated hub footprint is only "+Math.round(Math.sqrt(dx*dx+dz*dz))
+                            +" blocks from settlement '"+existing.name()+"'; "+clearance+" are required.");
         }
         return Optional.empty();
     }
@@ -470,6 +493,7 @@ public final class FrontierHubRuntimePlacer {
         private final CommandSourceStack source;
         private final BlockPos requestedPosition;
         private final boolean ruined;
+        private final int minimumSettlementClearance;
         private JobPhase phase = JobPhase.PREPARING;
         private Structure structure;
         private ChunkGenerator generator;
@@ -491,11 +515,13 @@ public final class FrontierHubRuntimePlacer {
         private boolean finished;
 
         private PlacementJob(
-                CommandSourceStack source, BlockPos requestedPosition, boolean ruined
+                CommandSourceStack source, BlockPos requestedPosition, boolean ruined,
+                int minimumSettlementClearance
         ) {
             this.source = source;
             this.requestedPosition = requestedPosition.immutable();
             this.ruined = ruined;
+            this.minimumSettlementClearance = minimumSettlementClearance;
         }
 
         private void tick(ServerLevel level) {
@@ -540,6 +566,9 @@ public final class FrontierHubRuntimePlacer {
             }
             this.bounds = this.start.getBoundingBox();
             Optional<String> validationFailure = validateBounds(level, this.start, this.bounds);
+            if(validationFailure.isEmpty()&&this.minimumSettlementClearance>0)
+                validationFailure=validateSettlementClearance(
+                        level,this.bounds,this.minimumSettlementClearance);
             if (validationFailure.isPresent()) {
                 fail(validationFailure.get());
                 return;
@@ -632,7 +661,9 @@ public final class FrontierHubRuntimePlacer {
                 case DECAY -> progress(90, 99, this.decayBlocksDone, this.decayBlocksTotal);
                 case FINALIZING -> 99;
             };
-            return new JobStatus(this.phase.display, percent, this.ruined, this.mutatedWorld);
+            BlockPos placedCenter = this.bounds == null ? null : this.bounds.getCenter();
+            return new JobStatus(
+                    this.phase.display, percent, this.ruined, this.mutatedWorld, placedCenter);
         }
 
         private static int progress(int start, int end, int done, int total) {
@@ -801,7 +832,13 @@ public final class FrontierHubRuntimePlacer {
         }
     }
 
-    public record JobStatus(String phase, int percent, boolean ruined, boolean worldChanged) {
+    /**
+     * The generated structure can be offset from the requested generation chunk. Exposing its
+     * actual bounds center keeps story POIs attached to the blocks that were really placed.
+     */
+    public record JobStatus(
+            String phase, int percent, boolean ruined, boolean worldChanged, BlockPos placedCenter
+    ) {
     }
 
     public record CancelResult(boolean success, String message) {

@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-08-02T22:28:42.551Z" hostname="TOASTER" time="0.053">
+<testsuite name="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-08-03T06:36:44.799Z" hostname="TOASTER" time="0.087">
   <properties/>
-  <testcase name="raidFormRoundTripsWithRoles()" classname="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" time="0.015"/>
-  <testcase name="weightedPickIgnoresZeroWeightAndHonorsWeights()" classname="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" time="0.005"/>
-  <testcase name="codecRejectsUnknownEntitiesGracefullyViaDefaults()" classname="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" time="0.002"/>
-  <testcase name="codecParsesEveryField()" classname="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" time="0.001"/>
-  <testcase name="entityResolutionExcludesUnknownIds()" classname="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" time="0.0"/>
-  <testcase name="loadCandidatesGroupsBySlotAndDropsInvalid()" classname="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" time="0.028"/>
+  <testcase name="raidFormRoundTripsWithRoles()" classname="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" time="0.023"/>
+  <testcase name="weightedPickIgnoresZeroWeightAndHonorsWeights()" classname="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" time="0.008"/>
+  <testcase name="codecRejectsUnknownEntitiesGracefullyViaDefaults()" classname="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" time="0.001"/>
+  <testcase name="codecParsesEveryField()" classname="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" time="0.002"/>
+  <testcase name="entityResolutionExcludesUnknownIds()" classname="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" time="0.001"/>
+  <testcase name="loadCandidatesGroupsBySlotAndDropsInvalid()" classname="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" time="0.044"/>
   <testcase name="chooseFromPrefersPrimaryThenFallback()" classname="dev.campaigncore.washedashore.encounter.EncounterCandidateTest" time="0.001"/>
-  <system-out><![CDATA[[15:28:42] [Test worker/WARN]: combat_candidate_bad_slot candidate=campaign_core:bad_slot slot=campaign_core:nope expected_one_of=[campaign_core:washed_ashore/thrasher, campaign_core:washed_ashore/sculk_surface, campaign_core:washed_ashore/regional_boss_c, campaign_core:washed_ashore/consuming_dread, campaign_core:washed_ashore/undertaker, campaign_core:washed_ashore/sculken_raven]
-[15:28:42] [Test worker/WARN]: combat_candidate_bad_form candidate=campaign_core:noform_file; exactly one of entity/entity_tag/raid is required
-[15:28:42] [Test worker/INFO]: combat_candidates_reloaded count=1 slots=[campaign_core:washed_ashore/undertaker]
+  <system-out><![CDATA[[23:36:44] [Test worker/WARN]: combat_candidate_bad_form candidate=campaign_core:noform_file; exactly one of entity/entity_tag/raid is required
+[23:36:44] [Test worker/WARN]: combat_candidate_bad_slot candidate=campaign_core:bad_slot slot=campaign_core:nope expected_one_of=[campaign_core:washed_ashore/regional_boss_c, campaign_core:washed_ashore/sculk_surface, campaign_core:washed_ashore/thrasher, campaign_core:washed_ashore/sculken_raven, campaign_core:washed_ashore/undertaker, campaign_core:washed_ashore/consuming_dread]
+[23:36:44] [Test worker/INFO]: combat_candidates_reloaded count=1 slots=[campaign_core:washed_ashore/undertaker]
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

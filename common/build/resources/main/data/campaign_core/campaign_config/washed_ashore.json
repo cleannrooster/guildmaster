@@ -9,7 +9,7 @@
   "guide_maximum_distance": 120,
   "raven_minimum_distance_from_settlement": 600,
   "generation_attempt_limit": 96,
-  "settlement_separation": 200,
+  "settlement_separation": 320,
   "instance_minimum_separation": 4096,
   "first_awakening_movement_ticks": 80,
   "death_respawn_movement_ticks": 40,

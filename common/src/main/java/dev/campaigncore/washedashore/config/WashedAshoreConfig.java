@@ -9,7 +9,7 @@ public final class WashedAshoreConfig {
     public double graveyardMinimumProgress=.45, graveyardMaximumProgress=.70;
     public int graveyardMaximumLateralOffset=32, guideMinimumDistance=20, guideMaximumDistance=120;
     public int ravenMinimumDistanceFromSettlement=600, generationAttemptLimit=96;
-    public int settlementSeparation=200;
+    public int settlementSeparation=320;
     public int instanceMinimumSeparation=4096;
     public int firstAwakeningMovementTicks=80,deathRespawnMovementTicks=40,obstructionGraceTicks=10;
     public int respawnProtectionTicks=60,maximumRespawnProtectionTicks=100;
@@ -30,7 +30,7 @@ public final class WashedAshoreConfig {
         c.guideMaximumDistance=GsonHelper.getAsInt(json,"guide_maximum_distance",c.guideMaximumDistance);
         c.ravenMinimumDistanceFromSettlement=GsonHelper.getAsInt(json,"raven_minimum_distance_from_settlement",c.ravenMinimumDistanceFromSettlement);
         c.generationAttemptLimit=GsonHelper.getAsInt(json,"generation_attempt_limit",c.generationAttemptLimit);
-        c.settlementSeparation=GsonHelper.getAsInt(json,"settlement_separation",c.settlementSeparation);
+        c.settlementSeparation=Math.max(256,GsonHelper.getAsInt(json,"settlement_separation",c.settlementSeparation));
         c.instanceMinimumSeparation=Math.max(1,GsonHelper.getAsInt(json,"instance_minimum_separation",c.instanceMinimumSeparation));
         c.firstAwakeningMovementTicks=GsonHelper.getAsInt(json,"first_awakening_movement_ticks",c.firstAwakeningMovementTicks);
         c.deathRespawnMovementTicks=GsonHelper.getAsInt(json,"death_respawn_movement_ticks",c.deathRespawnMovementTicks);

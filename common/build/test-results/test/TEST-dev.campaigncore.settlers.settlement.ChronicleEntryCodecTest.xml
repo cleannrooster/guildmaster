@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.campaigncore.settlers.settlement.ChronicleEntryCodecTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-08-02T22:28:42.309Z" hostname="TOASTER" time="0.004">
+<testsuite name="dev.campaigncore.settlers.settlement.ChronicleEntryCodecTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-08-03T06:36:44.553Z" hostname="TOASTER" time="0.004">
   <properties/>
-  <testcase name="chronicleEntryRoundTrips()" classname="dev.campaigncore.settlers.settlement.ChronicleEntryCodecTest" time="0.004"/>
+  <testcase name="chronicleEntryRoundTrips()" classname="dev.campaigncore.settlers.settlement.ChronicleEntryCodecTest" time="0.003"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

@@ -77,7 +77,7 @@ public final class HubIncidentManager {
         }
         EntityType<?> type=BuiltInRegistries.ENTITY_TYPE.get(id);if(!resolves(type,id))return;
         for(int i=0;i<special.protectedCount();i++){
-            Entity entity=type.create(level);if(entity==null)continue;BlockPos pos=surface(level,center.offset(level.random.nextInt(9)-4,0,level.random.nextInt(9)-4));
+            Entity entity=type.create(level);if(entity==null)continue;CampaignSpawnProtection.preventRpgMinibossRecruitment(entity);BlockPos pos=surface(level,center.offset(level.random.nextInt(9)-4,0,level.random.nextInt(9)-4));
             entity.moveTo(pos.getX()+.5,pos.getY(),pos.getZ()+.5,level.random.nextFloat()*360,0);entity.addTag(MEMBER_TAG);entity.addTag(MEMBER_TAG+"="+incidentId);entity.addTag(PROTECTED_TAG);
             if(entity instanceof Mob mob){mob.finalizeSpawn(level,level.getCurrentDifficultyAt(pos),MobSpawnType.EVENT,null);mob.setPersistenceRequired();}
             if(level.addFreshEntity(entity)){state.protectedEntities().add(entity.getUUID());state.temporaryEntities().add(entity.getUUID());}
@@ -100,7 +100,7 @@ public final class HubIncidentManager {
             }
             if(!opponents&&special.mount().isPresent()&&entity instanceof LivingEntity rider){
                 ResourceLocation mountId=special.mount().get();EntityType<?> mountType=BuiltInRegistries.ENTITY_TYPE.get(mountId);Entity mount=resolves(mountType,mountId)?mountType.create(level):null;
-                if(mount!=null){mount.moveTo(entity.getX(),entity.getY(),entity.getZ(),entity.getYRot(),0);mount.addTag(MEMBER_TAG);mount.addTag(MEMBER_TAG+"="+incidentId);if(level.addFreshEntity(mount))rider.startRiding(mount,true);}
+                if(mount!=null){CampaignSpawnProtection.preventRpgMinibossRecruitment(mount);mount.moveTo(entity.getX(),entity.getY(),entity.getZ(),entity.getYRot(),0);mount.addTag(MEMBER_TAG);mount.addTag(MEMBER_TAG+"="+incidentId);if(level.addFreshEntity(mount))rider.startRiding(mount,true);}
                 if(entity instanceof Zombie zombie)zombie.setBaby(true);
             }
             if(level.addFreshEntity(entity)){

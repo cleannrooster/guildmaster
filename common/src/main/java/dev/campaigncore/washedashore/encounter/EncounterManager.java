@@ -2,6 +2,7 @@ package dev.campaigncore.washedashore.encounter;
 
 import dev.campaigncore.CampaignCore;
 import dev.campaigncore.compat.LegacyCampaignCompatibility;
+import dev.campaigncore.config.CampaignServerConfig;
 import dev.campaigncore.washedashore.act.*;
 import dev.campaigncore.washedashore.data.WashedAshoreSavedData;
 import net.minecraft.core.BlockPos;
@@ -28,6 +29,11 @@ public final class EncounterManager {
     private static final ResourceLocation UNDERTAKER_RELOCATED=id("undertaker_relocated_to_settlement");
     private static final ResourceLocation SETTLEMENT_UNDERTAKER_KILLED=id("settlement_undertaker_killed");
     private static final String SETTLEMENT_UNDERTAKER_TAG="campaign_core_washed_ashore_settlement_undertaker";
+    private static final String SCULK_AND_SCAVENGE="sculk_and_scavenge";
+    private static final Map<ResourceLocation,ResourceLocation> SCULK_AND_SCAVENGE_PREFERRED=Map.of(
+            UNDERTAKER,ResourceLocation.fromNamespaceAndPath(SCULK_AND_SCAVENGE,"undertaker"),
+            CONSUMING_DREAD,ResourceLocation.fromNamespaceAndPath(SCULK_AND_SCAVENGE,"consuming_dread"),
+            RAVEN,ResourceLocation.fromNamespaceAndPath(SCULK_AND_SCAVENGE,"sculken_raven"));
     /** Marks a candidate spawn whose native drops must be suppressed (read by EncounterDropSuppressionMixin). */
     public static final String SUPPRESS_DROPS_TAG="campaign_core_washed_ashore_suppress_drops";
     private static final EncounterDefinitionRegistry DEFINITIONS=new EncounterDefinitionRegistry();
@@ -187,6 +193,15 @@ public final class EncounterManager {
         Entity boss=encounter.activeBossUuid()==null?null:level.getEntity(encounter.activeBossUuid());
         if(boss!=null){migrateLegacyEncounterMetadata(boss);encounter.found();updateBossBar(level,encounter);if(!boss.isAlive())complete(level,data,instance,encounter);return;}
         if(!level.hasChunkAt(encounter.bossSpawnPos()))return;
+        Entity replacement=findReplacement(level,encounter);
+        if(replacement!=null){
+            UUID previous=encounter.activeBossUuid();
+            replacement.addTag(encounterTag(encounter.encounterId()));
+            encounter.activate(replacement.getUUID());data.dirty();updateBossBar(level,encounter);
+            CampaignCore.LOGGER.info("encounter_boss_rebound id={} previous_uuid={} replacement_uuid={} type={}",
+                    encounter.encounterId(),previous,replacement.getUUID(),BuiltInRegistries.ENTITY_TYPE.getKey(replacement.getType()));
+            return;
+        }
         if(encounter.noteMissing()>=6){
             // The boss vanished without a death (unloaded/removed): treat as abandoned and
             // schedule an automatic retry rather than resetting the quest immediately.
@@ -202,11 +217,29 @@ public final class EncounterManager {
             CampaignCore.LOGGER.info("settlement_undertaker_killed uuid={} pos={}",entity.getUUID(),entity.blockPosition());
             return true;
         }
-        for(var instance:data.instances())for(EncounterAnchor e:instance.encounters().values())if(entity.getUUID().equals(e.activeBossUuid())){
-            dropCampaignLoot(level,entity,e);return complete(level,data,instance,e);
-        }
+        for(var instance:data.instances())for(EncounterAnchor e:instance.encounters().values())
+            if(entity.getUUID().equals(e.activeBossUuid())||matchesEncounterIdentity(entity,e)){
+                dropCampaignLoot(level,entity,e);return complete(level,data,instance,e);
+            }
         return false;
     }
+
+    private static Entity findReplacement(ServerLevel level,EncounterAnchor encounter){
+        AABB area=new AABB(encounter.anchorPos()).inflate(encounter.resetRadius());
+        return level.getEntities((Entity)null,area,entity->entity.isAlive()&&matchesEncounterIdentity(entity,encounter))
+                .stream().min(Comparator.comparingDouble(entity->entity.blockPosition().distSqr(encounter.anchorPos()))).orElse(null);
+    }
+
+    private static boolean matchesEncounterIdentity(Entity entity,EncounterAnchor encounter){
+        if(encounter.status()!=EncounterStatus.ACTIVE)return false;
+        if(entity.blockPosition().distSqr(encounter.anchorPos())>square(encounter.resetRadius()))return false;
+        if(entity.getTags().contains(encounterTag(encounter.encounterId())))return true;
+        EncounterCandidate candidate=encounter.selectedCandidate()==null?null:CANDIDATES.byId(encounter.selectedCandidate()).orElse(null);
+        return candidate!=null&&entity.hasCustomName()
+                &&entity.getCustomName().getString().equals(encounterDisplayName(candidate,encounter.encounterId()).getString());
+    }
+
+    private static String encounterTag(ResourceLocation id){return "campaign_core_washed_ashore_encounter="+id;}
     public static boolean complete(ServerLevel level,WashedAshoreSavedData data,ResourceLocation id){
         EncounterAnchor encounter=data.act().encounters().get(id);if(encounter==null||encounter.status()==EncounterStatus.COMPLETED)return false;
         return complete(level,data,data.act(),encounter);
@@ -228,9 +261,20 @@ public final class EncounterManager {
                 CompletionEffect effect=COMPLETION_EFFECTS.get(handler);
                 if(effect!=null)effect.run(level,data,encounter,player,progress);
             }
+            DEFINITIONS.get(id).map(EncounterDefinition::rewardLootTable).ifPresent(table->
+                    grantRewardLoot(level,player,table,id));
             CampaignMessages.send(player,completion.message(),name);
         }
         data.dirty();CampaignCore.LOGGER.info("encounter_completed id={}",id);return true;
+    }
+    private static void grantRewardLoot(ServerLevel level,ServerPlayer player,ResourceLocation tableId,ResourceLocation encounterId){
+        var key=net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE,tableId);
+        var table=level.getServer().reloadableRegistries().getLootTable(key);
+        var params=new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
+                .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN,player.position())
+                .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
+        for(var stack:table.getRandomItems(params))if(!stack.isEmpty()&&!player.getInventory().add(stack))player.drop(stack,false);
+        CampaignCore.LOGGER.info("encounter_reward_granted encounter={} player={} table={}",encounterId,player.getUUID(),tableId);
     }
     public static void completeUndertakerBySettlementArrival(ServerLevel level,WashedAshoreSavedData data,ServerPlayer player){
         EncounterAnchor encounter=data.act().encounters().get(UNDERTAKER);
@@ -287,6 +331,22 @@ public final class EncounterManager {
     }
     /** Lazily selects (and persists) a candidate for the encounter's slot; returns null to use the native entity. */
     private static EncounterCandidate resolveSelection(ServerLevel level,WashedAshoreSavedData data,EncounterAnchor encounter){
+        ResourceLocation preferred=SCULK_AND_SCAVENGE_PREFERRED.get(encounter.encounterId());
+        if(CampaignServerConfig.preferSculkAndScavengeEncounters()&&preferred!=null
+                &&SELECTOR.modPresent(SCULK_AND_SCAVENGE)
+                &&EncounterCandidateSelector.entityResolves(preferred)){
+            Optional<EncounterCandidate> nativeCandidate=
+                    SELECTOR.selectEntity(level,encounter.encounterId(),encounter.bossSpawnPos(),preferred);
+            ResourceLocation selection=nativeCandidate.map(EncounterCandidate::id).orElse(null);
+            if(!Objects.equals(encounter.selectedCandidate(),selection)){
+                encounter.setSelectedCandidate(selection);data.dirty();
+            }
+            CampaignCore.LOGGER.info("combat_candidate_sculk_and_scavenge_preferred encounter={} entity={} candidate={}",
+                    encounter.encounterId(),preferred,selection);
+            // Raven has no candidate entry because its native encounter definition already names the
+            // Sculk and Scavenge entity. A null candidate deliberately takes that native path.
+            return nativeCandidate.orElse(null);
+        }
         if(encounter.selectedCandidate()!=null)return CANDIDATES.byId(encounter.selectedCandidate()).orElse(null);
         Optional<EncounterCandidate> selected=SELECTOR.select(level,encounter.encounterId(),encounter.bossSpawnPos());
         if(selected.isPresent()){

@@ -25,7 +25,7 @@
   "objective.campaign_core.washed_ashore.investigate_crossing": "Investigate the disturbed ground around Devil's Crossing.",
   "message.campaign_core.washed_ashore.crossing_progress": "The tracks below the ruins are becoming clearer: %s%%",
   "message.campaign_core.washed_ashore.thrasher_stirs": "The earth beneath Devil's Crossing begins to thrash.",
-  "message.campaign_core.washed_ashore.crossing_horde_rises": "The churned ground splits open. The drowned dead of Devil's Crossing claw their way up — and the sun does not touch them.",
+  "message.campaign_core.washed_ashore.crossing_horde_rises": "The churned ground splits open.",
   "message.campaign_core.washed_ashore.crossing_wave": "Another wave tears itself free of the earth. (%s/%s)",
   "message.campaign_core.washed_ashore.crossing_horde_repelled": "The last of the risen dead falls still. Devil's Crossing is quiet once more.",
   "message.campaign_core.washed_ashore.sculk_surface_found": "The land here is wrong — a spreading crust of sculk, listening. Sensors twitch and shriekers wait.",
@@ -145,6 +145,7 @@
   ,"marker.campaign_core.washed_ashore.poi.guide": "Guide Sign"
   ,"marker.campaign_core.washed_ashore.poi.undertaker": "Undertaker's Graveyard"
   ,"marker.campaign_core.washed_ashore.poi.settlement": "First Settlement"
+  ,"marker.campaign_core.washed_ashore.poi.second_settlement": "Second Settlement"
   ,"marker.campaign_core.washed_ashore.poi.raven": "Sculken Raven Arena"
   ,"marker.campaign_core.washed_ashore.poi.dark_forest": "Dark Forest"
   ,"marker.campaign_core.washed_ashore.poi.devils_crossing": "Devil's Crossing"

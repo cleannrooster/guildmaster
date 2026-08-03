@@ -6,6 +6,7 @@
   "reset_radius": 72,
   "one_shot": true,
   "required_stage": "WASHED_ASHORE",
+  "reward_loot_table": "campaign_core:washed_ashore/campaign/undertaker",
   "on_complete": {
     "advance_to": ["UNDERTAKER_DEFEATED"]
   }

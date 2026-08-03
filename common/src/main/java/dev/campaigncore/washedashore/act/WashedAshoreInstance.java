@@ -83,6 +83,7 @@ public final class WashedAshoreInstance {
     public void setOtherSettlement(BlockPos position){this.otherSettlement=position;}
     public void setDevilsCrossing(BlockPos position){this.devilsCrossing=position;}
     public void setUndertakerGraveyard(BlockPos position){this.undertakerGraveyard=position;}
+    public void setRavenArena(BlockPos position){this.ravenArena=position;}
     public void setSculkSurface(BlockPos position){this.sculkSurface=position;}
     public void setRegionalLayout(BlockPos forest, BlockPos crossing, BlockPos other) {
         darkForest=forest;devilsCrossing=crossing;otherSettlement=other;

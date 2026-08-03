@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.campaigncore.settlers.economy.SettlementEconomyStateTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-08-02T22:28:42.258Z" hostname="TOASTER" time="0.014">
+<testsuite name="dev.campaigncore.settlers.economy.SettlementEconomyStateTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-08-03T06:36:44.485Z" hostname="TOASTER" time="0.027">
   <properties/>
-  <testcase name="copyConstructorIsDeep()" classname="dev.campaigncore.settlers.economy.SettlementEconomyStateTest" time="0.001"/>
-  <testcase name="codecRoundTrips()" classname="dev.campaigncore.settlers.economy.SettlementEconomyStateTest" time="0.009"/>
-  <testcase name="rejectsNegativeAndNonFinite()" classname="dev.campaigncore.settlers.economy.SettlementEconomyStateTest" time="0.003"/>
+  <testcase name="copyConstructorIsDeep()" classname="dev.campaigncore.settlers.economy.SettlementEconomyStateTest" time="0.0"/>
+  <testcase name="codecRoundTrips()" classname="dev.campaigncore.settlers.economy.SettlementEconomyStateTest" time="0.02"/>
+  <testcase name="rejectsNegativeAndNonFinite()" classname="dev.campaigncore.settlers.economy.SettlementEconomyStateTest" time="0.005"/>
   <testcase name="bundlesCapAndClaim()" classname="dev.campaigncore.settlers.economy.SettlementEconomyStateTest" time="0.001"/>
   <testcase name="reduceDebtClampsAtZero()" classname="dev.campaigncore.settlers.economy.SettlementEconomyStateTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>

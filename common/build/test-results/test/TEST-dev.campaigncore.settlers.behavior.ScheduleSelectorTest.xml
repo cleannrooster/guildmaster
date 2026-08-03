@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.campaigncore.settlers.behavior.ScheduleSelectorTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-08-02T22:28:35.603Z" hostname="TOASTER" time="6.571">
+<testsuite name="dev.campaigncore.settlers.behavior.ScheduleSelectorTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-08-03T06:36:37.663Z" hostname="TOASTER" time="6.739">
   <properties/>
   <testcase name="personalBreaksStayBetweenNineAndThree()" classname="dev.campaigncore.settlers.behavior.ScheduleSelectorTest" time="0.016"/>
   <testcase name="personalBreakWindowHasStableBoundaries()" classname="dev.campaigncore.settlers.behavior.ScheduleSelectorTest" time="0.001"/>
   <testcase name="settlersReceiveVariedStartsAndDestinations()" classname="dev.campaigncore.settlers.behavior.ScheduleSelectorTest" time="0.0"/>
   <testcase name="guardsPatrolAtNightWhileOtherResidentsSleep()" classname="dev.campaigncore.settlers.behavior.ScheduleSelectorTest" time="0.003"/>
   <testcase name="thrivingConversationWindowIsLonger()" classname="dev.campaigncore.settlers.behavior.ScheduleSelectorTest" time="0.001"/>
-  <testcase name="workTransitionsAndErrandCountsVaryByResident()" classname="dev.campaigncore.settlers.behavior.ScheduleSelectorTest" time="0.001"/>
+  <testcase name="workTransitionsAndErrandCountsVaryByResident()" classname="dev.campaigncore.settlers.behavior.ScheduleSelectorTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

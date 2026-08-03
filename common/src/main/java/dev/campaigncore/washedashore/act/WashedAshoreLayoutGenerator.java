@@ -25,6 +25,7 @@ import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.WallSignBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
 import net.minecraft.world.level.block.entity.BarrelBlockEntity;
@@ -57,6 +58,8 @@ public final class WashedAshoreLayoutGenerator {
     private static final int MAX_HUB_RELOCATIONS=6;
     private static final int HUB_RELOCATION_FOOTPRINT=16;
     private static final int RUIN_RELOCATION_FOOTPRINT=8;
+    private static final int RAVEN_ARENA_RADIUS=16;
+    private static final int RAVEN_ARENA_BLEND_RADIUS=10;
     /** Sculk Surface sits beyond the Dark Forest, on the settlement→forest bearing, this much further. */
     private static final int SCULK_BEYOND_FOREST=320;
     private static final int SCULK_BEYOND_JITTER=200;
@@ -117,7 +120,17 @@ public final class WashedAshoreLayoutGenerator {
     }
     public static void tick(ServerLevel level,WashedAshoreSavedData data) {
         for(WashedAshoreInstance act:data.instances()){
-            if(act.generationStatus()==WashedAshoreGenerationStatus.SEARCHING&&act==data.act())searchOne(level,data);
+            if(act.generationStatus()==WashedAshoreGenerationStatus.SEARCHING&&act==data.act()){
+                if(act.worldSpawnStoryline())searchOne(level,data);
+                else{
+                    // Natural/command instances resolve synchronously around their requested origin.
+                    // SEARCHING here is a legacy partial failure and must never fall through to the
+                    // world-spawn search algorithm.
+                    CampaignCore.LOGGER.warn("invalid_natural_primary_search_rolled_back instance={} requested={}",
+                            act.actInstanceId(),act.beachSearchCenter());
+                    act.reset();act.setWorldSpawnStoryline(false);data.dirty();
+                }
+            }
             else if(act.generationStatus()==WashedAshoreGenerationStatus.PLACING)place(level,data,act);
         }
     }
@@ -234,7 +247,7 @@ public final class WashedAshoreLayoutGenerator {
             placeGuide(level,act.guideLandmark(),act.settlement());
             placeExpeditionCache(level,act.guideLandmark(),act.undertakerGraveyard());
             act.setUndertakerGraveyard(placeGraveyard(level,act.undertakerGraveyard(),act.settlement()));
-            placeRavenArena(level,act.ravenArena());
+            act.setRavenArena(placeRavenArena(level,act.ravenArena()));
             EncounterManager.registerDefaults(act);
             act.setStatus(WashedAshoreGenerationStatus.COMPLETE);
             CampaignCore.LOGGER.info("act_structure_placement_complete instance={}",act.actInstanceId());
@@ -269,7 +282,15 @@ public final class WashedAshoreLayoutGenerator {
         else created=new WashedAshoreInstance();
         created.setWorldSpawnStoryline(false);
         created.setStatus(WashedAshoreGenerationStatus.SEARCHING);created.setBeachSearchCenter(requested);
-        calculateLayout(level,data,created,beach,bypassBeach,false);
+        try{
+            calculateLayout(level,data,created,beach,bypassBeach,false);
+        }catch(RuntimeException ex){
+            // Never leave the canonical slot half-initialized. A SEARCHING primary is serviced by
+            // searchOne(), whose origin is world spawn; that previously caused a failed distant
+            // natural anchor to create its storyline back at spawn on the following tick.
+            if(populatePrimary){created.reset();created.setWorldSpawnStoryline(false);data.dirty();}
+            throw ex;
+        }
         if(!populatePrimary)data.addInstance(created);
         return null;
     }
@@ -331,10 +352,12 @@ public final class WashedAshoreLayoutGenerator {
                 if(relocateHub(level,state,RUIN_RELOCATION_FOOTPRINT,act::setDevilsCrossing))return false;
                 throw new IllegalStateException("Settlers ruined frontier hub could not be placed clear of existing settlements after "+state.relocationAttempts+" relocations");
             }
+            BlockPos actual=state.placedCenter!=null?state.placedCenter:state.center;
+            act.setDevilsCrossing(actual);
             act.completedWorldObjectives().add(DEVILS_CROSSING_RUIN_PLACED);
             releaseHubTickets(state);HUB_LOADS.remove(key);data.dirty();
-            announceHubConstruction(level,false,DEVILS_CROSSING_RUIN_PLACED,state.center);
-            CampaignCore.LOGGER.info("devils_crossing_ruined_hub_complete requested={} final={}",requested,state.center);
+            announceHubConstruction(level,false,DEVILS_CROSSING_RUIN_PLACED,actual);
+            CampaignCore.LOGGER.info("devils_crossing_ruined_hub_complete requested={} actual={}",requested,actual);
             return true;
         }catch(RuntimeException ex){
             releaseHubTickets(state);HUB_LOADS.remove(key);throw ex;
@@ -395,7 +418,9 @@ public final class WashedAshoreLayoutGenerator {
         CommandSourceStack source=level.getServer().createCommandSourceStack()
                 .withLevel(level).withPosition(Vec3.atCenterOf(state.center)).withPermission(4)
                 .withSuppressedOutput();
-        FrontierHubRuntimePlacer.StartResult start=FrontierHubRuntimePlacer.enqueue(source,state.center,ruined);
+        FrontierHubRuntimePlacer.StartResult start=FrontierHubRuntimePlacer.enqueue(
+                source,state.center,ruined,
+                ruined?WashedAshoreConfig.INSTANCE.settlementSeparation:0);
         if(!start.success()){
             String message=start.message();
             if(message.contains("already active"))return HubJobResult.WAITING;
@@ -415,6 +440,7 @@ public final class WashedAshoreLayoutGenerator {
         if(!phase.equals(state.lastPhase)||percent/10!=state.lastPercent/10)
             CampaignCore.LOGGER.info("frontier_hub_async_progress id={} phase={} percent={}",id,phase,percent);
         state.lastPhase=phase;state.lastPercent=percent;state.worldChanged|=changed;
+        if(status.placedCenter()!=null)state.placedCenter=status.placedCenter();
     }
     private static List<BlockPos> settlementCenters(ServerLevel level){
         List<BlockPos> centers=new ArrayList<>();
@@ -632,9 +658,40 @@ public final class WashedAshoreLayoutGenerator {
             level.setBlock(cursor.set(center.getX()+x,desired,center.getZ()+z),Blocks.GRASS_BLOCK.defaultBlockState(),2);
         }
     }
-    private static void placeRavenArena(ServerLevel l,BlockPos c){
-        for(int x=-8;x<=8;x++)for(int z=-8;z<=8;z++)if(x*x+z*z<=64)l.setBlock(c.offset(x,0,z),Blocks.DEEPSLATE_TILES.defaultBlockState(),3);
-        l.setBlock(c.above(),Blocks.SCULK_CATALYST.defaultBlockState(),3);
+    private static BlockPos placeRavenArena(ServerLevel level,BlockPos requested){
+        List<Integer> heights=new ArrayList<>();
+        for(int x=-RAVEN_ARENA_RADIUS;x<=RAVEN_ARENA_RADIUS;x+=4)
+            for(int z=-RAVEN_ARENA_RADIUS;z<=RAVEN_ARENA_RADIUS;z+=4)
+                if(x*x+z*z<=RAVEN_ARENA_RADIUS*RAVEN_ARENA_RADIUS)
+                    heights.add(naturalGroundY(level,requested.getX()+x,requested.getZ()+z));
+        Collections.sort(heights);
+        int targetY=heights.isEmpty()?requested.getY():heights.get(heights.size()/2);
+        int outer=RAVEN_ARENA_RADIUS+RAVEN_ARENA_BLEND_RADIUS,changed=0;
+        BlockPos.MutableBlockPos cursor=new BlockPos.MutableBlockPos();
+        for(int x=-outer;x<=outer;x++)for(int z=-outer;z<=outer;z++){
+            double distance=Math.sqrt(x*x+z*z);if(distance>outer)continue;
+            int worldX=requested.getX()+x,worldZ=requested.getZ()+z;
+            int current=naturalGroundY(level,worldX,worldZ);
+            double blend=Mth.clamp((distance-RAVEN_ARENA_RADIUS)/RAVEN_ARENA_BLEND_RADIUS,0.0,1.0);
+            int desired=Mth.floor(Mth.lerp(blend,targetY,current));
+            int clearTop=level.getHeight(Heightmap.Types.WORLD_SURFACE,worldX,worldZ)+2;
+            for(int y=desired+1;y<=clearTop;y++){
+                cursor.set(worldX,y,worldZ);
+                if(!level.getBlockState(cursor).isAir()){level.setBlock(cursor,Blocks.AIR.defaultBlockState(),2);changed++;}
+            }
+            for(int y=Math.min(current,desired);y<desired;y++){
+                cursor.set(worldX,y,worldZ);
+                if(!level.getBlockState(cursor).is(Blocks.DIRT)){level.setBlock(cursor,Blocks.DIRT.defaultBlockState(),2);changed++;}
+            }
+            cursor.set(worldX,desired,worldZ);
+            BlockState top=distance<=RAVEN_ARENA_RADIUS?Blocks.DEEPSLATE_TILES.defaultBlockState():Blocks.GRASS_BLOCK.defaultBlockState();
+            if(!level.getBlockState(cursor).equals(top)){level.setBlock(cursor,top,3);changed++;}
+        }
+        BlockPos center=new BlockPos(requested.getX(),targetY,requested.getZ());
+        level.setBlock(center.above(),Blocks.SCULK_CATALYST.defaultBlockState(),3);
+        CampaignCore.LOGGER.info("raven_arena_terrain_fitted requested={} center={} radius={} blend_radius={} changed_blocks={}",
+                requested,center,RAVEN_ARENA_RADIUS,RAVEN_ARENA_BLEND_RADIUS,changed);
+        return center;
     }
     private static BlockPos surface(ServerLevel level,BlockPos pos){
         // Unprepared chunks can expose an empty heightmap and produce a below-world Y.
@@ -761,13 +818,14 @@ public final class WashedAshoreLayoutGenerator {
         private int relocationAttempts;
         private boolean enqueued;
         private boolean worldChanged;
+        private BlockPos placedCenter;
         private String lastPhase="not_started";
         private int lastPercent=-1;
         private HubLoadState(ServerLevel level,BlockPos center){this.level=level;this.center=center;this.originalCenter=center;}
         private int total(){int diameter=HUB_CHUNK_RADIUS*2+1;return diameter*diameter;}
         /** Re-points a rejected job at a new site and clears its per-attempt progress for a fresh run. */
         private void retarget(BlockPos newCenter){
-            center=newCenter;cursor=0;enqueued=false;worldChanged=false;lastPhase="not_started";lastPercent=-1;
+            center=newCenter;cursor=0;enqueued=false;worldChanged=false;placedCenter=null;lastPhase="not_started";lastPercent=-1;
         }
     }
 }

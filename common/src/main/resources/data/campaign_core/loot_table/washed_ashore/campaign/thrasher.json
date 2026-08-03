@@ -1,0 +1,7 @@
+{"type":"minecraft:chest","pools":[
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:diamond_axe"},{"type":"minecraft:item","name":"minecraft:diamond_leggings"},{"type":"minecraft:item","name":"minecraft:crossbow"}]},
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:diamond","functions":[{"function":"minecraft:set_count","count":{"min":4,"max":8}}]}]},
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:gold_ingot","functions":[{"function":"minecraft:set_count","count":{"min":12,"max":24}}]}]},
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:golden_carrot","functions":[{"function":"minecraft:set_count","count":{"min":12,"max":20}}]}]},
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:experience_bottle","functions":[{"function":"minecraft:set_count","count":{"min":20,"max":32}}]}]}
+]}

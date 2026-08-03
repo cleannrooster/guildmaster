@@ -24,7 +24,7 @@ public final class EncounterDefinitionLoader extends SimpleJsonResourceReloadLis
     private static final Gson GSON=new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static final Set<String> FIELDS=Set.of(
             "id","boss_entity","anchor","anchor_offset","activation_radius","reset_radius",
-            "one_shot","required_stage","placeholder","retry_delay_ticks","activation","on_complete","raid","horde","sculk");
+            "one_shot","required_stage","placeholder","retry_delay_ticks","reward_loot_table","activation","on_complete","raid","horde","sculk");
     private static final Set<String> RAID_MEMBER_FIELDS=Set.of("entity","count","role");
     private static final Set<String> HORDE_FIELDS=Set.of("spawn_radius","scan_radius","waves");
     private static final Set<String> WAVE_FIELDS=Set.of("members");
@@ -67,7 +67,9 @@ public final class EncounterDefinitionLoader extends SimpleJsonResourceReloadLis
         WashedAshoreStage stage=stage(GsonHelper.getAsString(json,"required_stage"));
         boolean placeholder=GsonHelper.getAsBoolean(json,"placeholder",false);
         int retryDelay=GsonHelper.getAsInt(json,"retry_delay_ticks",EncounterDefinition.DEFAULT_RETRY_DELAY_TICKS);
-        return new EncounterDefinition(id,boss,anchor,offset,activationRadius,reset,oneShot,stage,placeholder,retryDelay,completion(json),activation(json),raid(json),horde(json),sculk(json));
+        ResourceLocation reward=json.has("reward_loot_table")
+                ?resource(GsonHelper.getAsString(json,"reward_loot_table"),"reward_loot_table"):null;
+        return new EncounterDefinition(id,boss,anchor,offset,activationRadius,reset,oneShot,stage,placeholder,retryDelay,reward,completion(json),activation(json),raid(json),horde(json),sculk(json));
     }
 
     private static SculkArenaProfile sculk(JsonObject json){

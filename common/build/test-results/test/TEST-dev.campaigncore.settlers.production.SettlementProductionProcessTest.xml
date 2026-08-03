@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.campaigncore.settlers.production.SettlementProductionProcessTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-08-02T22:28:42.297Z" hostname="TOASTER" time="0.011">
+<testsuite name="dev.campaigncore.settlers.production.SettlementProductionProcessTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-08-03T06:36:44.541Z" hostname="TOASTER" time="0.012">
   <properties/>
-  <testcase name="noProductionDuringThreat()" classname="dev.campaigncore.settlers.production.SettlementProductionProcessTest" time="0.002"/>
+  <testcase name="noProductionDuringThreat()" classname="dev.campaigncore.settlers.production.SettlementProductionProcessTest" time="0.003"/>
   <testcase name="workersBeyondInfrastructureDemandDoNotIncreaseOutput()" classname="dev.campaigncore.settlers.production.SettlementProductionProcessTest" time="0.001"/>
   <testcase name="eightFishersOrHerdersProduceNinetySixFoodPerDay()" classname="dev.campaigncore.settlers.production.SettlementProductionProcessTest" time="0.0"/>
   <testcase name="foodOutputCappedByInfrastructureCeiling()" classname="dev.campaigncore.settlers.production.SettlementProductionProcessTest" time="0.0"/>
-  <testcase name="nonFoodOutputsIgnoreFoodCeiling()" classname="dev.campaigncore.settlers.production.SettlementProductionProcessTest" time="0.001"/>
+  <testcase name="nonFoodOutputsIgnoreFoodCeiling()" classname="dev.campaigncore.settlers.production.SettlementProductionProcessTest" time="0.0"/>
   <testcase name="normalCadenceMatchesOneFullDayPass()" classname="dev.campaigncore.settlers.production.SettlementProductionProcessTest" time="0.002"/>
   <testcase name="firstPassProducesNothingAndInitializesClock()" classname="dev.campaigncore.settlers.production.SettlementProductionProcessTest" time="0.001"/>
   <testcase name="repeatedTickAtSameGameTimeProducesNothing()" classname="dev.campaigncore.settlers.production.SettlementProductionProcessTest" time="0.0"/>
   <testcase name="workingYieldsTripleAbsentAssignment()" classname="dev.campaigncore.settlers.production.SettlementProductionProcessTest" time="0.0"/>
-  <testcase name="outputScalesUpWithAssignedWorkers()" classname="dev.campaigncore.settlers.production.SettlementProductionProcessTest" time="0.0"/>
+  <testcase name="outputScalesUpWithAssignedWorkers()" classname="dev.campaigncore.settlers.production.SettlementProductionProcessTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

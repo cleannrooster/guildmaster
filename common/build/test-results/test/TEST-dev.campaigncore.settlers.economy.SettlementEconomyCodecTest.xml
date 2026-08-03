@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.campaigncore.settlers.economy.SettlementEconomyCodecTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-08-02T22:28:42.219Z" hostname="TOASTER" time="0.03">
+<testsuite name="dev.campaigncore.settlers.economy.SettlementEconomyCodecTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-08-03T06:36:44.446Z" hostname="TOASTER" time="0.028">
   <properties/>
-  <testcase name="oldSettlementWithoutEconomyLoadsWithOwnedDefault()" classname="dev.campaigncore.settlers.economy.SettlementEconomyCodecTest" time="0.03"/>
+  <testcase name="oldSettlementWithoutEconomyLoadsWithOwnedDefault()" classname="dev.campaigncore.settlers.economy.SettlementEconomyCodecTest" time="0.027"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

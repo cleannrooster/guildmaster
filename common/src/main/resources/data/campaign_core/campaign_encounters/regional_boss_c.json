@@ -6,6 +6,7 @@
   "reset_radius": 96,
   "one_shot": true,
   "required_stage": "REGIONAL_OBJECTIVES",
+  "reward_loot_table": "campaign_core:washed_ashore/campaign/regional_boss_c",
   "raid": [
     { "entity": "rpg-minibosses:juggernaut", "count": 1 },
     { "entity": "rpg-minibosses:minor_mercenary", "count": 2 },

@@ -33,6 +33,10 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
 /**
  * The Sculk Surface encounter. A swath of ground far beyond the Dark Forest is converted to sculk and
@@ -168,23 +172,30 @@ public final class SculkSurfaceManager {
                                   SculkArenaProfile profile,ServerPlayer witness){
         int radius=profile.formationRadius();
         int converted=0;
+        Random layoutRandom=new Random(level.getSeed()^center.asLong()^0x5C01C5EEDL);
+        List<int[]> patches=new ArrayList<>();
+        patches.add(new int[]{0,0,3});
+        for(int i=0;i<7;i++){
+            double angle=layoutRandom.nextDouble()*Math.PI*2;
+            int distance=4+layoutRandom.nextInt(Math.max(1,radius-6));
+            patches.add(new int[]{Mth.floor(Math.cos(angle)*distance),Mth.floor(Math.sin(angle)*distance),2+layoutRandom.nextInt(3)});
+        }
+        List<BlockPos> sculkFloor=new ArrayList<>();
         for(int x=-radius;x<=radius;x++)for(int z=-radius;z<=radius;z++){
             if(x*x+z*z>radius*radius)continue;
+            boolean inPatch=false;
+            for(int[] patch:patches){int dx=x-patch[0],dz=z-patch[1];if(dx*dx+dz*dz<=patch[2]*patch[2]){inPatch=true;break;}}
+            if(!inPatch)continue;
             int worldX=center.getX()+x,worldZ=center.getZ()+z;
             if(!level.hasChunkAt(new BlockPos(worldX,center.getY(),worldZ)))continue;
             BlockPos ground=new BlockPos(worldX,level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,worldX,worldZ)-1,worldZ);
             if(!level.getFluidState(ground).isEmpty()||!level.getBlockState(ground).isSolid())continue;
             clearGrowth(level,ground.above());
             level.setBlock(ground,Blocks.SCULK.defaultBlockState(),2);
-            BlockPos below=ground.below();
-            if(level.getBlockState(below).isSolid()&&level.getFluidState(below).isEmpty())
-                level.setBlock(below,Blocks.SCULK.defaultBlockState(),2);
-            dress(level,ground.above());
+            sculkFloor.add(ground);
             converted++;
         }
-        // A catalyst at the heart keeps the ground drinking every death that follows.
-        BlockPos heart=new BlockPos(center.getX(),level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,center.getX(),center.getZ()),center.getZ());
-        level.setBlock(heart,Blocks.SCULK_CATALYST.defaultBlockState(),3);
+        placeSparseSculkFeatures(level,sculkFloor,layoutRandom);
         data.act().completedWorldObjectives().add(FORMED);
         data.dirty();
         CampaignMessages.send(witness,"sculk_surface_found");
@@ -192,13 +203,19 @@ public final class SculkSurfaceManager {
                 center,radius,converted,witness.getUUID());
     }
 
-    /** Scatters sensors, shriekers and sculk growths across the converted swath. */
-    private static void dress(ServerLevel level,BlockPos on){
-        if(!level.getBlockState(on).isAir())return;
-        float r=level.random.nextFloat();
-        if(r<0.04f)level.setBlock(on,Blocks.SCULK_SHRIEKER.defaultBlockState(),3);       // decorative: default can_summon=false
-        else if(r<0.12f)level.setBlock(on,Blocks.SCULK_SENSOR.defaultBlockState(),3);
-        else if(r<0.15f)level.setBlock(on,Blocks.SCULK_CATALYST.defaultBlockState(),3);
+    /** Places only a few focal blocks; the arena's visual mass comes from separated ground patches. */
+    private static void placeSparseSculkFeatures(ServerLevel level,List<BlockPos> floor,Random random){
+        Collections.shuffle(floor,random);
+        List<BlockPos> placed=new ArrayList<>();
+        int catalysts=0,shriekers=0;
+        for(BlockPos ground:floor){
+            if(catalysts>=2&&shriekers>=3)break;
+            BlockPos on=ground.above();
+            if(!level.getBlockState(on).isAir()||placed.stream().anyMatch(pos->pos.distSqr(on)<16))continue;
+            if(catalysts<2){level.setBlock(on,Blocks.SCULK_CATALYST.defaultBlockState(),3);catalysts++;}
+            else {level.setBlock(on,Blocks.SCULK_SHRIEKER.defaultBlockState(),3);shriekers++;}
+            placed.add(on);
+        }
     }
 
     private static void clearGrowth(ServerLevel level,BlockPos pos){

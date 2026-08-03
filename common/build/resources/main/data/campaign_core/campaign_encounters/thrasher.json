@@ -6,6 +6,7 @@
   "reset_radius": 112,
   "one_shot": true,
   "required_stage": "REGIONAL_OBJECTIVES",
+  "reward_loot_table": "campaign_core:washed_ashore/campaign/thrasher",
   "activation": {
     "radius": 22,
     "discovery_radius": 56,

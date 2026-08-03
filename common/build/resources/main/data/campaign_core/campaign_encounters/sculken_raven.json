@@ -6,6 +6,7 @@
   "reset_radius": 128,
   "one_shot": true,
   "required_stage": "RAVEN_ROUTE_REVEALED",
+  "reward_loot_table": "campaign_core:washed_ashore/campaign/sculken_raven",
   "on_complete": {
     "advance_to": ["RAVEN_DEFEATED", "ACT_COMPLETE"],
     "handlers": ["unlock_act_two"]

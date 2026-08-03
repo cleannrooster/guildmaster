@@ -54,6 +54,19 @@ public final class EncounterCandidateSelector {
         return chooseFrom(eligible, level.random);
     }
 
+    /** Selects one exact entity from a slot, while retaining the normal availability/environment checks. */
+    public Optional<EncounterCandidate> selectEntity(
+            ServerLevel level, ResourceLocation slot, BlockPos anchor, ResourceLocation entityId
+    ) {
+        for (EncounterCandidate candidate : pool.forSlot(slot)) {
+            if (candidate.entity().isPresent() && candidate.entity().get().equals(entityId)
+                    && ineligibilityReason(level, candidate, anchor) == null) {
+                return Optional.of(candidate);
+            }
+        }
+        return Optional.empty();
+    }
+
     /**
      * Pure selection over an already-eligible list: weighted-pick a non-fallback candidate; if there are none,
      * use a fallback candidate; if the list is empty, return empty. Exposed for unit testing.

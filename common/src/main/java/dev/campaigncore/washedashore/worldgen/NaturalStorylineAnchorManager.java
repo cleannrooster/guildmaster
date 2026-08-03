@@ -14,23 +14,32 @@ import dev.campaigncore.CampaignCore;
 /** Detects generated anchors near players and hands them to the normal server-thread reinstance path. */
 public final class NaturalStorylineAnchorManager {
     private static final Set<Long> checkedChunks=new HashSet<>();
+    private static final Map<Long,Long> retryAfter=new HashMap<>();
     private static ServerLevel checkedLevel;
     private NaturalStorylineAnchorManager(){}
     public static void tick(ServerLevel level,WashedAshoreSavedData data){
         if(level!=level.getServer().overworld()||level.getGameTime()%40!=0)return;
-        if(checkedLevel!=level){checkedLevel=level;checkedChunks.clear();}
+        if(checkedLevel!=level){checkedLevel=level;checkedChunks.clear();retryAfter.clear();}
         for(ServerPlayer player:level.players()){
             ChunkPos center=player.chunkPosition();
             for(int dx=-2;dx<=2;dx++)for(int dz=-2;dz<=2;dz++){
                 ChunkPos chunk=new ChunkPos(center.x+dx,center.z+dz);long key=chunk.toLong();
+                if(level.getGameTime()<retryAfter.getOrDefault(key,0L))continue;
                 if(!level.hasChunk(chunk.x,chunk.z)||!checkedChunks.add(key))continue;
                 BlockPos anchor=findAnchor(level,chunk);if(anchor==null||data.naturalAnchorProcessed(anchor))continue;
-                data.markNaturalAnchorProcessed(anchor);
                 try{
                     String failure=WashedAshoreLayoutGenerator.createReinstance(level,data,anchor,true);
+                    retryAfter.remove(key);
+                    data.markNaturalAnchorProcessed(anchor);
                     if(failure==null)player.sendSystemMessage(Component.translatable("message.campaign_core.natural_anchor_discovered"));
                     else CampaignCore.LOGGER.info("natural_storyline_anchor_rejected pos={} reason={}",anchor,failure);
-                }catch(RuntimeException ex){CampaignCore.LOGGER.error("natural_storyline_anchor_failed pos={}",anchor,ex);}
+                }catch(RuntimeException ex){
+                    // Permit another attempt instead of consuming a landmark whose layout never
+                    // committed. Back off for five minutes to avoid retry/log churn on difficult terrain.
+                    checkedChunks.remove(key);
+                    retryAfter.put(key,level.getGameTime()+5*60*20);
+                    CampaignCore.LOGGER.error("natural_storyline_anchor_failed pos={}; primary state rolled back",anchor,ex);
+                }
             }
         }
     }

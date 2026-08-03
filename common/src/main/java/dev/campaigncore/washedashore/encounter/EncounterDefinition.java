@@ -23,6 +23,7 @@ public record EncounterDefinition(
         WashedAshoreStage requiredStage,
         boolean placeholder,
         int retryDelayTicks,
+        ResourceLocation rewardLootTable,
         EncounterCompletion onComplete,
         ActivationProfile activation,
         List<RaidMember> raid,

@@ -1,0 +1,7 @@
+{"type":"minecraft:chest","pools":[
+ {"rolls":2,"entries":[{"type":"minecraft:item","name":"minecraft:diamond_helmet"},{"type":"minecraft:item","name":"minecraft:diamond_boots"},{"type":"minecraft:item","name":"minecraft:diamond_pickaxe"}]},
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:emerald_block","functions":[{"function":"minecraft:set_count","count":{"min":2,"max":4}}]}]},
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:diamond","functions":[{"function":"minecraft:set_count","count":{"min":5,"max":10}}]}]},
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:totem_of_undying"}]},
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:experience_bottle","functions":[{"function":"minecraft:set_count","count":{"min":24,"max":40}}]}]}
+]}

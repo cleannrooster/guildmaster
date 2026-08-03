@@ -57,6 +57,7 @@ public final class ObjectiveMarkerHudRenderer {
     }
     private static int clamp(int value,int minimum,int maximum){return Math.max(minimum,Math.min(maximum,value));}
     private static ResourceLocation texture(ObjectiveMarker.Type type){
+
         String name=switch(type){
             case GUIDE -> "sign";
             case UNDERTAKER -> "undertaker";
@@ -64,8 +65,10 @@ public final class ObjectiveMarkerHudRenderer {
             case RAVEN -> "raven";
             case DARK_FOREST -> "forest";
             case DEVILS_CROSSING -> "crossing";
+            case SECOND_SETTLEMENT -> "settlement_2";
             case RAID -> "raid";
         };
+
         return CampaignCore.id("textures/objective_markers/"+name+"_ico.png");
     }
 }

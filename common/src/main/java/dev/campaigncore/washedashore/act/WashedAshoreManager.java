@@ -51,8 +51,14 @@ public final class WashedAshoreManager {
             CampaignCore.LOGGER.info("act_generation_queued_on_world_load dimension={}",level.dimension().location());
             WashedAshoreLayoutGenerator.begin(level,data);
         }
-        if(data.act().generationStatus()==WashedAshoreGenerationStatus.SEARCHING)
-            WashedAshoreLayoutGenerator.resolveLocationsBeforePlayers(level,data);
+        if(data.act().generationStatus()==WashedAshoreGenerationStatus.SEARCHING){
+            if(data.act().worldSpawnStoryline())WashedAshoreLayoutGenerator.resolveLocationsBeforePlayers(level,data);
+            else{
+                CampaignCore.LOGGER.warn("invalid_natural_primary_search_found_on_load instance={} requested={}; rolling back",
+                        data.act().actInstanceId(),data.act().beachSearchCenter());
+                data.act().reset();data.act().setWorldSpawnStoryline(false);data.dirty();
+            }
+        }
     }
     public static void tick(ServerLevel level) {
         if(level!=level.getServer().overworld())return;
@@ -133,7 +139,7 @@ public final class WashedAshoreManager {
                 addEncounterTarget(targets,act,EncounterManager.THRASHER,act.devilsCrossing(),ObjectiveMarker.Type.DEVILS_CROSSING);
             // Regional Encounter C — warn the distant settlement — carries its own marker until repelled.
             if(!act.completedWorldObjectives().contains(EncounterManager.REGIONAL_C))
-                addEncounterTarget(targets,act,EncounterManager.REGIONAL_C,act.otherSettlement(),ObjectiveMarker.Type.RAID);
+                addEncounterTarget(targets,act,EncounterManager.REGIONAL_C,act.otherSettlement(),ObjectiveMarker.Type.SECOND_SETTLEMENT);
         }
         // Once revealed, story POIs remain available even after their quest has completed.
         if(stage.atLeast(WashedAshoreStage.GUIDE_FOUND)&&act.guideLandmark()!=null&&act.settlement()!=null)
@@ -144,7 +150,7 @@ public final class WashedAshoreManager {
         if(stage.atLeast(WashedAshoreStage.REGIONAL_OBJECTIVES)){
             addEncounterTarget(targets,act,EncounterManager.CONSUMING_DREAD,act.darkForest(),ObjectiveMarker.Type.DARK_FOREST);
             addEncounterTarget(targets,act,EncounterManager.THRASHER,act.devilsCrossing(),ObjectiveMarker.Type.DEVILS_CROSSING);
-            addEncounterTarget(targets,act,EncounterManager.REGIONAL_C,act.otherSettlement(),ObjectiveMarker.Type.RAID);
+            addEncounterTarget(targets,act,EncounterManager.REGIONAL_C,act.otherSettlement(),ObjectiveMarker.Type.SECOND_SETTLEMENT);
         }
         for(HubIncidentState incident:data.hubIncidentsView().values())if(incident.active()&&incident.center()!=null)
             targets.add(new ObjectiveMarker(incident.activeIncident(),incident.center().above(),ObjectiveMarker.Type.RAID,true));
@@ -164,7 +170,7 @@ public final class WashedAshoreManager {
         if(stage.atLeast(WashedAshoreStage.REGIONAL_OBJECTIVES)){
             addEncounterTarget(targets,act,EncounterManager.CONSUMING_DREAD,act.darkForest(),ObjectiveMarker.Type.DARK_FOREST);
             addEncounterTarget(targets,act,EncounterManager.THRASHER,act.devilsCrossing(),ObjectiveMarker.Type.DEVILS_CROSSING);
-            addEncounterTarget(targets,act,EncounterManager.REGIONAL_C,act.otherSettlement(),ObjectiveMarker.Type.RAID);
+            addEncounterTarget(targets,act,EncounterManager.REGIONAL_C,act.otherSettlement(),ObjectiveMarker.Type.SECOND_SETTLEMENT);
         }
     }
     private static java.util.Collection<ObjectiveMarker> nearestMarkers(ServerPlayer player,java.util.Collection<ObjectiveMarker> markers){

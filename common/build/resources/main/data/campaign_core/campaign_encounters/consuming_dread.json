@@ -7,6 +7,7 @@
   "one_shot": true,
   "required_stage": "REGIONAL_OBJECTIVES",
   "retry_delay_ticks": 12000,
+  "reward_loot_table": "campaign_core:washed_ashore/campaign/consuming_dread",
   "activation": {
     "radius": 32,
     "biome_tag": "minecraft:is_forest",
