@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.campaigncore.settlers.expansion.FrontierHubRuntimePlacerTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-08-03T06:36:44.513Z" hostname="TOASTER" time="0.006">
+<testsuite name="dev.campaigncore.settlers.expansion.FrontierHubRuntimePlacerTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-08-06T22:35:11.411Z" hostname="TOASTER" time="0.009">
   <properties/>
-  <testcase name="structureFootprintUsesStructureHeight()" classname="dev.campaigncore.settlers.expansion.FrontierHubRuntimePlacerTest" time="0.003"/>
+  <testcase name="structureFootprintUsesStructureHeight()" classname="dev.campaigncore.settlers.expansion.FrontierHubRuntimePlacerTest" time="0.004"/>
   <testcase name="ruinWeatheringIsDeterministicAndBounded()" classname="dev.campaigncore.settlers.expansion.FrontierHubRuntimePlacerTest" time="0.001"/>
   <testcase name="blendReachesExistingTerrainAtOuterEdge()" classname="dev.campaigncore.settlers.expansion.FrontierHubRuntimePlacerTest" time="0.001"/>
-  <testcase name="blendInterpolatesBetweenStructureAndExistingTerrain()" classname="dev.campaigncore.settlers.expansion.FrontierHubRuntimePlacerTest" time="0.0"/>
-  <testcase name="ruinedLayoutKeepsApproximatelyHalfTheGeneratedPieces()" classname="dev.campaigncore.settlers.expansion.FrontierHubRuntimePlacerTest" time="0.001"/>
+  <testcase name="blendInterpolatesBetweenStructureAndExistingTerrain()" classname="dev.campaigncore.settlers.expansion.FrontierHubRuntimePlacerTest" time="0.001"/>
+  <testcase name="ruinedLayoutKeepsApproximatelyHalfTheGeneratedPieces()" classname="dev.campaigncore.settlers.expansion.FrontierHubRuntimePlacerTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

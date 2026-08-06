@@ -42,9 +42,10 @@ public final class CampaignNetwork {
         buffer.writeVarInt(targets.size());
         for(ObjectiveMarker target:targets){
             buffer.writeResourceLocation(target.id());
+            buffer.writeResourceLocation(target.dimension().location());
             buffer.writeBlockPos(target.position());
             buffer.writeEnum(target.type());
-            buffer.writeBoolean(target.incident());
+            buffer.writeEnum(target.category());
         }
         NetworkManager.sendToPlayer(player,OBJECTIVE_MARKERS,buffer);
     }

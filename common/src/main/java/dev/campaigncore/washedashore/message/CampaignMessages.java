@@ -19,9 +19,9 @@ public final class CampaignMessages {
         CampaignMessageManager.send(player,CampaignCore.washedAshoreId("messages/"+id),index,args);
     }
     public static void story(ServerPlayer player,String key,Object...args){
-        ImmersiveMessage.builder(5.0f,tr(key,args)).anchor(TextAnchor.CENTER_CENTER).align(TextAnchor.CENTER_CENTER)
+        ImmersiveMessage.builder(10.0f,tr(key,args)).anchor(TextAnchor.CENTER_CENTER).align(TextAnchor.CENTER_CENTER)
                 .y(42).wrap(260).size(1.15f).color(ChatFormatting.WHITE).shadow(true)
-                .typewriter(1f,true).fadeIn(.7f).fadeOut(1.0f).sendServer(player);
+                .typewriter(2f,true).fadeIn(.7f).fadeOut(1.0f).sendServer(player);
     }
     public static void objective(ServerPlayer player,String key,Object...args){
         ImmersiveMessage.builder(6.5f,tr(key,args)).anchor(TextAnchor.TOP_CENTER).align(TextAnchor.TOP_CENTER)

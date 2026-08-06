@@ -1,7 +1,6 @@
 package dev.campaigncore.washedashore.encounter;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -22,13 +21,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class EncounterBossBars {
     /** How near a player must be to see an encounter's boss bar. */
     private static final double VISIBLE_RADIUS = 48.0;
-    private static final Map<ResourceLocation, ServerBossEvent> BARS = new ConcurrentHashMap<>();
+    private static final Map<EncounterAnchor, ServerBossEvent> BARS = new ConcurrentHashMap<>();
 
     private EncounterBossBars() {}
 
     /** Ensures a bar exists for {@code encounterId} with the given name; no-op if one is already open. */
-    public static void open(ResourceLocation encounterId, Component name) {
-        BARS.computeIfAbsent(encounterId, key ->
+    public static void open(EncounterAnchor encounter, Component name) {
+        BARS.computeIfAbsent(encounter, key ->
                 new ServerBossEvent(name, BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.PROGRESS));
     }
 
@@ -36,12 +35,12 @@ public final class EncounterBossBars {
      * Refreshes an open bar from the tracked entity: sets progress to its health fraction and shows the bar
      * to nearby players (hiding it from the rest). Closes the bar automatically if the entity is gone.
      */
-    public static void updateFrom(ServerLevel level, ResourceLocation encounterId, UUID entityUuid) {
-        ServerBossEvent bar = BARS.get(encounterId);
+    public static void updateFrom(ServerLevel level, EncounterAnchor encounter, UUID entityUuid) {
+        ServerBossEvent bar = BARS.get(encounter);
         if (bar == null) return;
         Entity entity = entityUuid == null ? null : level.getEntity(entityUuid);
         if (!(entity instanceof LivingEntity living) || !living.isAlive()) {
-            close(encounterId);
+            close(encounter);
             return;
         }
         bar.setProgress(Math.max(0f, Math.min(1f, living.getHealth() / living.getMaxHealth())));
@@ -53,11 +52,17 @@ public final class EncounterBossBars {
     }
 
     /** Whether a bar is currently open for the encounter (inspection only). */
-    public static boolean isOpen(ResourceLocation encounterId) { return BARS.containsKey(encounterId); }
+    public static boolean isOpen(EncounterAnchor encounter) { return BARS.containsKey(encounter); }
 
     /** Removes and hides a bar (on completion, abort, or when its entity vanishes). */
-    public static void close(ResourceLocation encounterId) {
-        ServerBossEvent bar = BARS.remove(encounterId);
+    public static void close(EncounterAnchor encounter) {
+        ServerBossEvent bar = BARS.remove(encounter);
         if (bar != null) bar.removeAllPlayers();
+    }
+
+    /** Clears transient bars when the owning server level unloads. */
+    public static void closeAll() {
+        for (ServerBossEvent bar : BARS.values()) bar.removeAllPlayers();
+        BARS.clear();
     }
 }

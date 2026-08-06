@@ -5,8 +5,8 @@
   "activation_radius": 40,
   "reset_radius": 128,
   "one_shot": true,
-  "required_stage": "REGIONAL_OBJECTIVES",
-  "reward_loot_table": "campaign_core:washed_ashore/campaign/sculk_surface",
+  "required_stage": "RAVEN_ROUTE_REVEALED",
+  "reward_loot_table": "campaign_core:washed_ashore/campaign/sculken_raven",
   "sculk": {
     "health_scale": 0.5,
     "damage_scale": 0.5,
@@ -19,6 +19,8 @@
     "wave_delay_ticks": 400
   },
   "on_complete": {
-    "message": "sculk_raven_defeated"
+    "message": "sculk_raven_defeated",
+    "advance_to": ["RAVEN_DEFEATED", "ACT_COMPLETE"],
+    "handlers": ["unlock_act_two"]
   }
 }

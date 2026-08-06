@@ -67,6 +67,14 @@ public final class EncounterCandidateSelector {
         return Optional.empty();
     }
 
+    /** Selects one exact candidate while retaining all normal availability and environment checks. */
+    public Optional<EncounterCandidate> selectCandidate(
+            ServerLevel level,ResourceLocation slot,BlockPos anchor,ResourceLocation candidateId
+    ) {
+        return pool.byId(candidateId).filter(candidate->candidate.slot().equals(slot)
+                &&ineligibilityReason(level,candidate,anchor)==null);
+    }
+
     /**
      * Pure selection over an already-eligible list: weighted-pick a non-fallback candidate; if there are none,
      * use a fallback candidate; if the list is empty, return empty. Exposed for unit testing.

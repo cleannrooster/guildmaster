@@ -7,6 +7,7 @@ import dev.campaigncore.settlers.detection.SettlementConverter;
 import dev.campaigncore.settlers.settlement.Settlement;
 import dev.campaigncore.settlers.settlement.SettlementManager;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
@@ -15,6 +16,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -26,6 +28,7 @@ import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.LanternBlock;
+import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.StainedGlassPaneBlock;
 import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.WallBlock;
@@ -40,13 +43,16 @@ import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Places the authored frontier hub through Minecraft's jigsaw structure generator, but fits completed
@@ -60,6 +66,9 @@ public final class FrontierHubRuntimePlacer {
     private static final int MAX_VERTICAL_CHANGE = 24;
     private static final int MAX_AFFECTED_COLUMNS = 65_536;
     private static final int UPDATE_FLAGS = 2;
+    // Vanilla leaves decay once their distance-to-log value reaches this bound.
+    private static final int LEAF_DECAY_DISTANCE = 7;
+    private static final int MAX_LEAF_CANDIDATES = 65_536;
     // Leaves most of a normal 50 ms server tick available to Minecraft while completing manual
     // placement considerably faster than the original ultra-conservative 5 ms slice.
     private static final long JOB_BUDGET_NANOS = 25_000_000L;
@@ -128,13 +137,22 @@ public final class FrontierHubRuntimePlacer {
     }
 
     public static PlacementResult place(ServerLevel level, BlockPos requestedPosition) {
+        return place(level, requestedPosition, false);
+    }
+
+    /** Operator-forced placement: keeps bounded-size/chunk safety but permits overwriting settlements. */
+    public static PlacementResult placeForced(ServerLevel level, BlockPos requestedPosition) {
+        return place(level, requestedPosition, true);
+    }
+
+    private static PlacementResult place(ServerLevel level, BlockPos requestedPosition, boolean allowOverwrite) {
         GeneratedHub generated = generate(level, requestedPosition);
         if (!generated.success()) {
             return PlacementResult.failure(generated.message());
         }
 
         StructureStart start = generated.start();
-        Optional<String> validationFailure = validateBounds(level, start, start.getBoundingBox());
+        Optional<String> validationFailure = validateBounds(level, start, start.getBoundingBox(), allowOverwrite);
         if (validationFailure.isPresent()) {
             return PlacementResult.failure(validationFailure.get());
         }
@@ -154,6 +172,15 @@ public final class FrontierHubRuntimePlacer {
      * never start for it.
      */
     public static RuinPlacementResult placeRuined(ServerLevel level, BlockPos requestedPosition) {
+        return placeRuined(level, requestedPosition, false);
+    }
+
+    /** Forced ruined placement with the same explicit overwrite semantics as {@link #placeForced}. */
+    public static RuinPlacementResult placeRuinedForced(ServerLevel level, BlockPos requestedPosition) {
+        return placeRuined(level, requestedPosition, true);
+    }
+
+    private static RuinPlacementResult placeRuined(ServerLevel level, BlockPos requestedPosition, boolean allowOverwrite) {
         GeneratedHub generated = generate(level, requestedPosition);
         if (!generated.success()) {
             return RuinPlacementResult.failure(generated.message());
@@ -168,7 +195,7 @@ public final class FrontierHubRuntimePlacer {
                 new PiecesContainer(selected));
 
         BoundingBox bounds = ruin.getBoundingBox();
-        Optional<String> validationFailure = validateBounds(level, ruin, bounds);
+        Optional<String> validationFailure = validateBounds(level, ruin, bounds, allowOverwrite);
         if (validationFailure.isPresent()) {
             return RuinPlacementResult.failure(validationFailure.get());
         }
@@ -222,6 +249,12 @@ public final class FrontierHubRuntimePlacer {
     private static Optional<String> validateBounds(
             ServerLevel level, StructureStart start, BoundingBox bounds
     ) {
+        return validateBounds(level,start,bounds,false);
+    }
+
+    private static Optional<String> validateBounds(
+            ServerLevel level, StructureStart start, BoundingBox bounds, boolean allowOverwrite
+    ) {
         int minX = bounds.minX() - BLEND_RADIUS;
         int minZ = bounds.minZ() - BLEND_RADIUS;
         int maxX = bounds.maxX() + BLEND_RADIUS;
@@ -234,10 +267,10 @@ public final class FrontierHubRuntimePlacer {
             return Optional.of(
                     "All hub and terrain-blend chunks must be loaded. Increase view distance or move closer.");
         }
-        if (SettlementManager.get(level).isConverted(start.getChunkPos())) {
+        if (!allowOverwrite&&SettlementManager.get(level).isConverted(start.getChunkPos())) {
             return Optional.of("A settlement is already registered in the selected start chunk.");
         }
-        for (Settlement existing : SettlementManager.get(level).all()) {
+        for (Settlement existing : allowOverwrite?List.<Settlement>of():SettlementManager.get(level).all()) {
             if (existing.bounds().intersects(bounds)) {
                 return Optional.of("The proposed frontier hub overlaps an existing settlement.");
             }
@@ -282,22 +315,27 @@ public final class FrontierHubRuntimePlacer {
     }
 
     private static int fitTerrain(ServerLevel level, TerrainPlan plan) {
+        List<Long> leafSeeds = new ArrayList<>();
         int changed = 0;
         for (long column : plan.affectedColumns()) {
             changed += fitTerrainColumn(
-                    level, plan, ChunkPos.getX(column), ChunkPos.getZ(column));
+                    level, plan, ChunkPos.getX(column), ChunkPos.getZ(column), leafSeeds);
         }
+        changed += decayOrphanedLeaves(level, leafSeeds);
         return changed;
     }
 
-    private static int fitTerrainColumn(ServerLevel level, TerrainPlan plan, int x, int z) {
+    private static int fitTerrainColumn(
+            ServerLevel level, TerrainPlan plan, int x, int z, List<Long> leafSeeds
+    ) {
         ColumnTarget nearest = plan.nearestTargets().get(columnKey(x, z));
         if (nearest == null) {
             return 0;
         }
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
         int changed = 0;
-        int currentSurface = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1;
+        int vegetationTop = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
+        int currentSurface = groundSurfaceY(level, x, z);
         int targetSurface = blendHeight(currentSurface, nearest.surfaceY(), nearest.distance(), BLEND_RADIUS);
         targetSurface = Mth.clamp(targetSurface,
                 currentSurface - MAX_VERTICAL_CHANGE, currentSurface + MAX_VERTICAL_CHANGE);
@@ -316,9 +354,26 @@ public final class FrontierHubRuntimePlacer {
         if (core != null) {
             clearTo = Math.max(clearTo, core.clearToY());
         }
+        // Vegetation above the demolition band — canopies, upper trunks, bamboo — would float once
+        // the blocks under it are cleared, so strip it all the way up to the world surface.
+        for (int y = vegetationTop; y > clearTo; y--) {
+            cursor.set(x, y, z);
+            BlockState state = level.getBlockState(cursor);
+            if (state.isAir()) {
+                continue;
+            }
+            if (isClearableVegetation(state)
+                    || (state.canBeReplaced() && state.getFluidState().isEmpty())) {
+                rememberLeafSeed(leafSeeds, state, x, y, z);
+                level.setBlock(cursor, Blocks.AIR.defaultBlockState(), UPDATE_FLAGS);
+                changed++;
+            }
+        }
         for (int y = clearTo; y > targetSurface; y--) {
             cursor.set(x, y, z);
-            if (!level.getBlockState(cursor).isAir()) {
+            BlockState state = level.getBlockState(cursor);
+            if (!state.isAir()) {
+                rememberLeafSeed(leafSeeds, state, x, y, z);
                 level.setBlock(cursor, Blocks.AIR.defaultBlockState(), UPDATE_FLAGS);
                 changed++;
             }
@@ -343,6 +398,168 @@ public final class FrontierHubRuntimePlacer {
         return !state.isAir() && state.getFluidState().isEmpty()
                 && !state.is(Blocks.BEDROCK) && !state.is(Blocks.BARRIER)
                 && state.isCollisionShapeFullBlock(level, pos);
+    }
+
+    /**
+     * Logs and bamboo are motion blocking, so {@code MOTION_BLOCKING_NO_LEAVES} reads trunk and
+     * stalk tops as terrain, inflating blend targets by whole tree heights in forested biomes.
+     * Walks down through vegetation to the real ground. Stops at fluids so water columns keep
+     * their pre-existing "surface is the water top" behavior.
+     */
+    private static int groundSurfaceY(ServerLevel level, int x, int z) {
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1;
+        int floor = level.getMinBuildHeight() + 1;
+        while (y > floor) {
+            BlockState state = level.getBlockState(cursor.set(x, y, z));
+            if (!state.getFluidState().isEmpty()) {
+                break;
+            }
+            if (!state.isAir() && !isClearableVegetation(state) && !state.canBeReplaced()) {
+                break;
+            }
+            y--;
+        }
+        return y;
+    }
+
+    private static boolean isClearableVegetation(BlockState state) {
+        return state.is(BlockTags.LOGS)
+                || state.is(BlockTags.LEAVES)
+                || state.is(BlockTags.WART_BLOCKS)
+                || state.is(Blocks.BAMBOO)
+                || state.is(Blocks.BAMBOO_SAPLING)
+                || state.is(Blocks.VINE)
+                || state.is(Blocks.CACTUS)
+                || state.is(Blocks.SUGAR_CANE)
+                || state.is(Blocks.MUSHROOM_STEM)
+                || state.is(Blocks.RED_MUSHROOM_BLOCK)
+                || state.is(Blocks.BROWN_MUSHROOM_BLOCK);
+    }
+
+    private static void rememberLeafSeed(List<Long> leafSeeds, BlockState removed, int x, int y, int z) {
+        if (removed.is(BlockTags.LOGS) || removed.is(BlockTags.LEAVES)) {
+            leafSeeds.add(BlockPos.asLong(x, y, z));
+        }
+    }
+
+    /**
+     * Deterministic analogue of vanilla leaf decay for the tree blocks this placer removed.
+     * Placement suppresses neighbor updates, so non-persistent leaves whose supporting log was
+     * cleared would keep a stale distance value and float forever — including canopies that
+     * overhang past {@link #BLEND_RADIUS}. Recomputes vanilla's distance-to-log for every leaf the
+     * removals could have influenced and clears the ones no surviving log sustains.
+     */
+    private static int decayOrphanedLeaves(ServerLevel level, List<Long> leafSeeds) {
+        if (leafSeeds.isEmpty()) {
+            return 0;
+        }
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+
+        // Distance propagates one step per leaf and decays at LEAF_DECAY_DISTANCE, so only leaves
+        // within that many through-leaf steps of a removed log or leaf can have depended on it.
+        Set<Long> candidates = new LinkedHashSet<>();
+        ArrayDeque<long[]> discovery = new ArrayDeque<>();
+        for (long seed : leafSeeds) {
+            discovery.add(new long[]{seed, 0});
+        }
+        boolean capped = false;
+        while (!discovery.isEmpty() && !capped) {
+            long[] entry = discovery.poll();
+            if (entry[1] >= LEAF_DECAY_DISTANCE - 1) {
+                continue;
+            }
+            for (Direction direction : Direction.values()) {
+                cursor.set(entry[0]).move(direction);
+                long key = cursor.asLong();
+                if (candidates.contains(key) || !isRecomputableLeaf(level.getBlockState(cursor))) {
+                    continue;
+                }
+                if (candidates.size() >= MAX_LEAF_CANDIDATES) {
+                    capped = true;
+                    break;
+                }
+                candidates.add(key);
+                discovery.add(new long[]{key, entry[1] + 1});
+            }
+        }
+        if (capped) {
+            SettlersMod.LOGGER.warn(
+                    "Leaf cleanup reached its {}-leaf bound; some distant canopy may remain.",
+                    MAX_LEAF_CANDIDATES);
+        }
+
+        // Multi-source shortest path over the candidate set. Sources are surviving logs (distance
+        // 1 via adjacency) and leaves outside the set, whose stored distance is still trustworthy.
+        Map<Long, Integer> distances = new LinkedHashMap<>(candidates.size());
+        List<List<Long>> buckets = new ArrayList<>(LEAF_DECAY_DISTANCE);
+        for (int i = 0; i < LEAF_DECAY_DISTANCE; i++) {
+            buckets.add(new ArrayList<>());
+        }
+        for (long candidate : candidates) {
+            int best = LEAF_DECAY_DISTANCE;
+            for (Direction direction : Direction.values()) {
+                cursor.set(candidate).move(direction);
+                if (candidates.contains(cursor.asLong())) {
+                    continue;
+                }
+                BlockState neighbor = level.getBlockState(cursor);
+                if (neighbor.is(BlockTags.LOGS)) {
+                    best = 1;
+                    break;
+                }
+                if (neighbor.hasProperty(LeavesBlock.DISTANCE)) {
+                    best = Math.min(best, neighbor.getValue(LeavesBlock.DISTANCE) + 1);
+                }
+            }
+            distances.put(candidate, best);
+            if (best < LEAF_DECAY_DISTANCE) {
+                buckets.get(best).add(candidate);
+            }
+        }
+        for (int d = 1; d < LEAF_DECAY_DISTANCE - 1; d++) {
+            List<Long> bucket = buckets.get(d);
+            for (int i = 0; i < bucket.size(); i++) {
+                long pos = bucket.get(i);
+                if (distances.get(pos) != d) {
+                    continue;
+                }
+                for (Direction direction : Direction.values()) {
+                    cursor.set(pos).move(direction);
+                    long key = cursor.asLong();
+                    Integer neighborDistance = distances.get(key);
+                    if (neighborDistance != null && neighborDistance > d + 1) {
+                        distances.put(key, d + 1);
+                        buckets.get(d + 1).add(key);
+                    }
+                }
+            }
+        }
+
+        int changed = 0;
+        for (Map.Entry<Long, Integer> entry : distances.entrySet()) {
+            cursor.set(entry.getKey());
+            BlockState state = level.getBlockState(cursor);
+            if (!isRecomputableLeaf(state)) {
+                continue;
+            }
+            if (entry.getValue() >= LEAF_DECAY_DISTANCE) {
+                level.setBlock(cursor, Blocks.AIR.defaultBlockState(), UPDATE_FLAGS);
+                changed++;
+            } else if (state.getValue(LeavesBlock.DISTANCE) != entry.getValue()) {
+                level.setBlock(cursor,
+                        state.setValue(LeavesBlock.DISTANCE, entry.getValue()), UPDATE_FLAGS);
+                changed++;
+            }
+        }
+        return changed;
+    }
+
+    private static boolean isRecomputableLeaf(BlockState state) {
+        return state.is(BlockTags.LEAVES)
+                && state.hasProperty(LeavesBlock.DISTANCE)
+                && state.hasProperty(LeavesBlock.PERSISTENT)
+                && !state.getValue(LeavesBlock.PERSISTENT);
     }
 
     /** Linear outward blend, kept package-visible for deterministic unit tests. */
@@ -501,6 +718,7 @@ public final class FrontierHubRuntimePlacer {
         private TerrainPlan terrain;
         private BoundingBox bounds;
         private List<ChunkPos> chunks = List.of();
+        private final List<Long> leafSeeds = new ArrayList<>();
         private int terrainColumnsDone;
         private int terrainColumnsTotal;
         private int chunkIndex;
@@ -586,9 +804,12 @@ public final class FrontierHubRuntimePlacer {
             this.mutatedWorld = true;
             long column = this.terrain.affectedColumns().get(this.terrainColumnsDone);
             this.changedTerrainBlocks += fitTerrainColumn(
-                    level, this.terrain, ChunkPos.getX(column), ChunkPos.getZ(column));
+                    level, this.terrain, ChunkPos.getX(column), ChunkPos.getZ(column),
+                    this.leafSeeds);
             this.terrainColumnsDone++;
             if (this.terrainColumnsDone >= this.terrainColumnsTotal) {
+                // Bounded one-shot pass; like a structure chunk it may use most of one tick budget.
+                this.changedTerrainBlocks += decayOrphanedLeaves(level, this.leafSeeds);
                 this.phase = JobPhase.STRUCTURES;
             }
         }

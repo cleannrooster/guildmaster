@@ -6,6 +6,7 @@ import dev.campaigncore.settlers.settlement.Settlement;
 import dev.campaigncore.settlers.settlement.SettlementManager;
 import dev.campaigncore.washedashore.config.WashedAshoreConfig;
 import dev.campaigncore.washedashore.data.WashedAshoreSavedData;
+import dev.campaigncore.washedashore.encounter.EncounterAnchor;
 import dev.campaigncore.washedashore.encounter.EncounterManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -20,12 +21,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.WallSignBlock;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
 import net.minecraft.world.level.block.entity.BarrelBlockEntity;
@@ -40,34 +42,45 @@ import java.util.Random;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.IdentityHashMap;
 
 /** A bounded, one-candidate-per-tick layout search followed by small synchronous placements. */
 public final class WashedAshoreLayoutGenerator {
     private static final ResourceLocation PRIMARY_HUB_PLACED=CampaignCore.washedAshoreId("primary_frontier_hub_placed");
+    private static final ResourceLocation PRIMARY_HUB_JOB_STARTED=CampaignCore.washedAshoreId("primary_frontier_hub_job_started");
+    private static final ResourceLocation GUIDE_PLACED=CampaignCore.washedAshoreId("initial_guide_placed");
+    private static final ResourceLocation EXPEDITION_CACHE_PLACED=CampaignCore.washedAshoreId("initial_expedition_cache_placed");
+    private static final ResourceLocation GRAVEYARD_PLACED=CampaignCore.washedAshoreId("initial_graveyard_placed");
     private static final ResourceLocation OTHER_HUB_PLACED=CampaignCore.washedAshoreId("other_frontier_hub_placed");
+    private static final ResourceLocation OTHER_HUB_JOB_STARTED=CampaignCore.washedAshoreId("other_frontier_hub_job_started");
     public static final ResourceLocation OTHER_HUB_REQUESTED=CampaignCore.washedAshoreId("other_frontier_hub_requested");
     private static final ResourceLocation OTHER_HUB_FAILED=CampaignCore.washedAshoreId("other_frontier_hub_failed");
     private static final ResourceLocation DEVILS_CROSSING_RUIN_PLACED=CampaignCore.washedAshoreId("devils_crossing_ruin_placed");
     private static final ResourceLocation DEVILS_CROSSING_RUIN_FAILED=CampaignCore.washedAshoreId("devils_crossing_ruin_failed");
+    private static final ResourceLocation DEVILS_CROSSING_RUIN_STARTED=CampaignCore.washedAshoreId("devils_crossing_ruin_started");
+    private static final ResourceLocation OTHER_HUB_STARTED=CampaignCore.washedAshoreId("other_frontier_hub_started");
+    private static final ResourceLocation REGIONAL_PLACEMENT_RETRY_V2=CampaignCore.washedAshoreId("regional_placement_retry_v2");
     private static final int HUB_CHUNK_RADIUS=10;
+    /** Brief exploration must not invalidate a POI; sustained occupation still protects player builds. */
+    private static final long REGIONAL_HUB_INHABITED_PROTECTION_TICKS=6000;
+    private static final int REGIONAL_HUB_PROTECTION_RADIUS=48;
+    private static final int REGIONAL_RUIN_PROTECTION_RADIUS=32;
     private static final int HUB_CHUNKS_PER_TICK=8;
     private static final int HUB_TICKET_LEVEL=2;
     private static final TicketType<ChunkPos> HUB_GENERATION_TICKET=
             TicketType.create("campaign_core_washed_ashore_frontier_hub",Comparator.comparingLong(ChunkPos::toLong));
     private static final Map<String,HubLoadState> HUB_LOADS=new HashMap<>();
-    private static final int MAX_HUB_RELOCATIONS=6;
     private static final int HUB_RELOCATION_FOOTPRINT=16;
     private static final int RUIN_RELOCATION_FOOTPRINT=8;
-    private static final int RAVEN_ARENA_RADIUS=16;
-    private static final int RAVEN_ARENA_BLEND_RADIUS=10;
     /** Sculk Surface sits beyond the Dark Forest, on the settlement→forest bearing, this much further. */
-    private static final int SCULK_BEYOND_FOREST=320;
-    private static final int SCULK_BEYOND_JITTER=200;
     private static final int SCULK_SEARCH_RADIUS=224;
     private static final int SCULK_FOOTPRINT=12;
     /** Fallback: any eligible dry site within a relatively large distance of the settlement. */
-    private static final int SCULK_FALLBACK_DISTANCE=520;
     private static final int SCULK_FALLBACK_SEARCH_RADIUS=768;
+    /** Dark Forest must remain distinct from the first settlement even under narrowed server config. */
+    private static final int DARK_FOREST_MINIMUM_DISTANCE_FROM_SETTLEMENT=128;
+    /** Keeps retry origins far enough apart to produce genuinely different biome/layout candidates. */
+    private static final int LAYOUT_RETRY_ORIGIN_STEP=512;
     /** Outcome of polling/starting a Settlers frontier-hub job for one tick. */
     private enum HubJobResult { WAITING, ENDED, REJECTED }
     private WashedAshoreLayoutGenerator(){}
@@ -77,11 +90,32 @@ public final class WashedAshoreLayoutGenerator {
     public static boolean isDevilsCrossingPlaced(WashedAshoreInstance act){
         return act.completedWorldObjectives().contains(DEVILS_CROSSING_RUIN_PLACED);
     }
+    /** Reopens one placement attempt for saves rejected by the former any-block-entity rule. */
+    public static boolean repairOverprotectivePlacementFailure(WashedAshoreInstance act){
+        if(!act.completedWorldObjectives().contains(OTHER_HUB_REQUESTED)
+                ||act.completedWorldObjectives().contains(REGIONAL_PLACEMENT_RETRY_V2))return false;
+        boolean repaired=act.completedWorldObjectives().remove(DEVILS_CROSSING_RUIN_FAILED)
+                |act.completedWorldObjectives().remove(OTHER_HUB_FAILED);
+        if(repaired)act.completedWorldObjectives().add(REGIONAL_PLACEMENT_RETRY_V2);
+        return repaired;
+    }
     public static boolean isHubConstructionPending(WashedAshoreInstance act){
         return act.generationStatus()==WashedAshoreGenerationStatus.PLACING
                 ||(act.completedWorldObjectives().contains(OTHER_HUB_REQUESTED)
                 &&!act.completedWorldObjectives().contains(OTHER_HUB_PLACED)
                 &&!act.completedWorldObjectives().contains(OTHER_HUB_FAILED));
+    }
+    /** Releases transient chunk tickets and level references when an integrated or dedicated world closes. */
+    public static void onLevelUnload(ServerLevel level){
+        if(level==level.getServer().overworld())dev.campaigncore.washedashore.encounter.EncounterBossBars.closeAll();
+        List<String> stale=HUB_LOADS.entrySet().stream()
+                .filter(entry->entry.getValue().level==level).map(Map.Entry::getKey).toList();
+        for(String key:stale){
+            HubLoadState state=HUB_LOADS.remove(key);
+            if(state!=null)releaseHubTickets(state);
+        }
+        if(!stale.isEmpty())CampaignCore.LOGGER.info("frontier_hub_load_states_cleared dimension={} count={}",
+                level.dimension().location(),stale.size());
     }
     public static void begin(ServerLevel level,WashedAshoreSavedData data) {
         WashedAshoreInstance act=data.act();
@@ -97,31 +131,32 @@ public final class WashedAshoreLayoutGenerator {
      */
     public static boolean resolveLocationsBeforePlayers(ServerLevel level,WashedAshoreSavedData data) {
         WashedAshoreInstance act=data.act();
-        try {
-            int budget=WashedAshoreConfig.INSTANCE.generationAttemptLimit+2;
-            while(act.generationStatus()==WashedAshoreGenerationStatus.SEARCHING&&budget-->0)searchOne(level,data);
-            if(act.generationStatus()==WashedAshoreGenerationStatus.SEARCHING||!act.hasLayout()){
-                act.setStatus(WashedAshoreGenerationStatus.FAILED);
-                data.dirty();
-                CampaignCore.LOGGER.error("act_location_resolution_failed_before_join attempts={} has_layout={}",
-                        act.generationAttempts(),act.hasLayout());
-                return false;
+        RuntimeException lastFailure=null;
+        int limit=Math.max(1,WashedAshoreConfig.INSTANCE.generationAttemptLimit);
+        while(act.generationStatus()==WashedAshoreGenerationStatus.SEARCHING&&act.generationAttempts()<limit){
+            try{searchOne(level,data);}
+            catch(RuntimeException ex){
+                lastFailure=ex;
+                CampaignCore.LOGGER.warn("act_location_resolution_attempt_failed attempt={}/{} reason={}",
+                        act.generationAttempts(),limit,ex.toString());
             }
-            CampaignCore.LOGGER.info("act_locations_resolved_before_join status={} beach={} guide={} graveyard={} settlement={} dark_forest={} crossing={} other_settlement={} raven={}",
-                    act.generationStatus(),act.beachSpawn(),act.guideLandmark(),act.undertakerGraveyard(),
-                    act.settlement(),act.darkForest(),act.devilsCrossing(),act.otherSettlement(),act.ravenArena());
-            return true;
-        } catch(RuntimeException ex) {
+        }
+        if(act.generationStatus()==WashedAshoreGenerationStatus.SEARCHING||!act.hasLayout()){
             act.setStatus(WashedAshoreGenerationStatus.FAILED);
             data.dirty();
-            CampaignCore.LOGGER.error("act_location_resolution_exception_before_join",ex);
+            CampaignCore.LOGGER.error("act_location_resolution_failed_before_join attempts={} has_layout={}",
+                    act.generationAttempts(),act.hasLayout(),lastFailure);
             return false;
         }
+        CampaignCore.LOGGER.info("act_locations_resolved_before_join status={} beach={} guide={} graveyard={} settlement={} dark_forest={} crossing={} other_settlement={} raven={}",
+                act.generationStatus(),act.beachSpawn(),act.guideLandmark(),act.undertakerGraveyard(),
+                act.settlement(),act.darkForest(),act.devilsCrossing(),act.otherSettlement(),act.ravenArena());
+        return true;
     }
     public static void tick(ServerLevel level,WashedAshoreSavedData data) {
         for(WashedAshoreInstance act:data.instances()){
             if(act.generationStatus()==WashedAshoreGenerationStatus.SEARCHING&&act==data.act()){
-                if(act.worldSpawnStoryline())searchOne(level,data);
+                if(act.worldSpawnStoryline())searchOneSafely(level,data);
                 else{
                     // Natural/command instances resolve synchronously around their requested origin.
                     // SEARCHING here is a legacy partial failure and must never fall through to the
@@ -134,9 +169,23 @@ public final class WashedAshoreLayoutGenerator {
             else if(act.generationStatus()==WashedAshoreGenerationStatus.PLACING)place(level,data,act);
         }
     }
+    private static void searchOneSafely(ServerLevel level,WashedAshoreSavedData data){
+        WashedAshoreInstance act=data.act();
+        int limit=Math.max(1,WashedAshoreConfig.INSTANCE.generationAttemptLimit);
+        try{searchOne(level,data);}
+        catch(RuntimeException ex){
+            CampaignCore.LOGGER.warn("act_location_resolution_attempt_failed attempt={}/{} reason={}",
+                    act.generationAttempts(),limit,ex.toString());
+            if(act.generationAttempts()>=limit){
+                act.setStatus(WashedAshoreGenerationStatus.FAILED);data.dirty();
+                CampaignCore.LOGGER.error("act_location_resolution_failed attempts={}",act.generationAttempts(),ex);
+            }
+        }
+    }
     private static void searchOne(ServerLevel level,WashedAshoreSavedData data) {
-        WashedAshoreInstance act=data.act();act.nextAttempt();var cfg=WashedAshoreConfig.INSTANCE;
-        BlockPos origin=level.getSharedSpawnPos().atY(level.getSeaLevel());
+        WashedAshoreInstance act=data.act();int attempt=act.nextAttempt();var cfg=WashedAshoreConfig.INSTANCE;
+        BlockPos worldSpawn=level.getSharedSpawnPos().atY(level.getSeaLevel());
+        BlockPos origin=retryOrigin(worldSpawn,attempt);
         var located=level.findClosestBiome3d(biome->biome.is(BiomeTags.IS_BEACH),origin,
                 cfg.beachSearchRadius,32,64);
         BlockPos beach;
@@ -152,8 +201,23 @@ public final class WashedAshoreLayoutGenerator {
             CampaignCore.LOGGER.warn("beach_biome_locator_failed origin={} radius={}; degraded fallback={}",
                     origin,cfg.beachSearchRadius,beach);
         }
+        beach=validatedBeachGround(level,beach);
         calculateLayout(level,data,act,beach,degraded,true);
         data.dirty();
+    }
+    private static BlockPos retryOrigin(BlockPos worldSpawn,int attempt){
+        if(attempt<=1)return worldSpawn;
+        int index=attempt-1;
+        double angle=index*2.399963229728653;
+        double radius=LAYOUT_RETRY_ORIGIN_STEP*Math.sqrt(index);
+        return worldSpawn.offset(Mth.floor(Math.cos(angle)*radius),0,Mth.floor(Math.sin(angle)*radius));
+    }
+    private static BlockPos validatedBeachGround(ServerLevel level,BlockPos candidate){
+        BlockPos feet=SafeSpawnResolver.findNearbySafeFeet(level,candidate,16)
+                .orElseThrow(()->new IllegalStateException("No safe player spawn found near beach candidate "+candidate));
+        BlockPos ground=feet.below();
+        if(!ground.equals(candidate))CampaignCore.LOGGER.info("beach_spawn_adjusted_before_layout requested={} selected={}",candidate,ground);
+        return ground;
     }
     private static void calculateLayout(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance act,BlockPos beach,boolean degraded,boolean setWorldSpawn) {
         var cfg=WashedAshoreConfig.INSTANCE;Vec3 inland=dominantInland(level,beach);
@@ -171,12 +235,14 @@ public final class WashedAshoreLayoutGenerator {
                 // Reserve half of the corridor allowance for initial variation
                 // and half for finding a dry, terrain-fit-capable footprint.
                 BlockPos.containing(start.lerp(end,progress).add(perpendicular.scale(random.nextDouble()*128-64))),128,9,3);
+        double ravenDistance=randomDistance(random,cfg.ravenMinimumDistanceFromSettlement,cfg.ravenMaximumDistanceFromSettlement);
         BlockPos raven=resolveDrySite(level,
-                BlockPos.containing(Vec3.atCenterOf(settlement).add(perpendicular.scale(cfg.ravenMinimumDistanceFromSettlement))),96,12,4);
+                BlockPos.containing(Vec3.atCenterOf(settlement).add(perpendicular.scale(ravenDistance))),96,12,4);
         BlockPos forest=findForestedSite(level,settlement,random);
         Vec3 onward=direction.add(perpendicular.scale(random.nextBoolean()?.65:-.65)).normalize();
+        double otherDistance=randomDistance(random,cfg.otherSettlementMinimumDistance,cfg.otherSettlementMaximumDistance);
         BlockPos other=resolveDrySite(level,
-                BlockPos.containing(Vec3.atCenterOf(settlement).add(onward.scale(700))),512,16,8);
+                BlockPos.containing(Vec3.atCenterOf(settlement).add(onward.scale(otherDistance))),512,16,8);
         BlockPos crossing=resolveDrySite(level,
                 BlockPos.containing(Vec3.atCenterOf(settlement).lerp(Vec3.atCenterOf(other),.48)
                 .add(new Vec3(-onward.z,0,onward.x).scale(random.nextDouble()*48-24))),128,8,4);
@@ -205,26 +271,31 @@ public final class WashedAshoreLayoutGenerator {
      * and forest bearings; no-ops when the POI already exists or those anchors are unavailable.
      */
     public static void backfillSculkSurface(ServerLevel level,WashedAshoreSavedData data){
-        WashedAshoreInstance act=data.act();
+        backfillSculkSurface(level,data,data.act());
+    }
+    public static void backfillSculkSurface(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance act){
         if(act.sculkSurface()!=null||act.settlement()==null||act.darkForest()==null)return;
         BlockPos sculk=resolveSculkSurface(level,act.settlement(),act.darkForest(),
                 new Random(level.getSeed()^act.settlement().asLong()));
         act.setSculkSurface(sculk);
         EncounterManager.registerDefaults(act);
         data.dirty();
-        CampaignCore.LOGGER.info("sculk_surface_backfilled settlement={} forest={} sculk={}",act.settlement(),act.darkForest(),sculk);
+        CampaignCore.LOGGER.info("sculk_surface_backfilled instance={} settlement={} forest={} sculk={}",
+                act.actInstanceId(),act.settlement(),act.darkForest(),sculk);
     }
     private static BlockPos resolveSculkSurface(ServerLevel level,BlockPos settlement,BlockPos forest,Random random){
         Vec3 origin=Vec3.atCenterOf(settlement),toForest=Vec3.atCenterOf(forest).subtract(origin);
         double forestDistance=toForest.length();
         Vec3 bearing=forestDistance<1?new Vec3(1,0,0):toForest.scale(1.0/forestDistance);
-        double beyond=forestDistance+SCULK_BEYOND_FOREST+random.nextDouble()*SCULK_BEYOND_JITTER;
+        var cfg=WashedAshoreConfig.INSTANCE;
+        double beyond=forestDistance+randomDistance(random,cfg.sculkMinimumDistanceBeyondForest,cfg.sculkMaximumDistanceBeyondForest);
         BlockPos beyondForest=BlockPos.containing(origin.add(bearing.scale(beyond)));
         try{
             return resolveDrySite(level,beyondForest,SCULK_SEARCH_RADIUS,SCULK_FOOTPRINT,8);
         }catch(IllegalStateException beyondFailed){
             CampaignCore.LOGGER.warn("sculk_surface_beyond_forest_unresolved requested={} reason={}",beyondForest,beyondFailed.getMessage());
-            BlockPos fallbackRequest=BlockPos.containing(origin.add(bearing.scale(SCULK_FALLBACK_DISTANCE)));
+            BlockPos fallbackRequest=BlockPos.containing(origin.add(bearing.scale(
+                    forestDistance+cfg.sculkMinimumDistanceBeyondForest)));
             try{
                 return resolveDrySite(level,fallbackRequest,SCULK_FALLBACK_SEARCH_RADIUS,SCULK_FOOTPRINT,8);
             }catch(IllegalStateException fallbackFailed){
@@ -241,20 +312,33 @@ public final class WashedAshoreLayoutGenerator {
             if(score>bestScore){bestScore=score;best=d;}}
         return best.normalize();
     }
+    private static double randomDistance(Random random,int minimum,int maximum){
+        return minimum+random.nextDouble()*Math.max(0,maximum-minimum);
+    }
     private static void place(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance act) {
         try {
             if(!ensureFrontierHub(level,data,act,act.settlement(),PRIMARY_HUB_PLACED,true))return;
-            placeGuide(level,act.guideLandmark(),act.settlement());
-            placeExpeditionCache(level,act.guideLandmark(),act.undertakerGraveyard());
-            act.setUndertakerGraveyard(placeGraveyard(level,act.undertakerGraveyard(),act.settlement()));
-            act.setRavenArena(placeRavenArena(level,act.ravenArena()));
+            if(!act.completedWorldObjectives().contains(GUIDE_PLACED)){
+                placeGuide(level,act.guideLandmark(),act.settlement());
+                act.completedWorldObjectives().add(GUIDE_PLACED);data.dirty();
+            }
+            if(!act.completedWorldObjectives().contains(EXPEDITION_CACHE_PLACED)){
+                placeExpeditionCache(level,act.guideLandmark(),act.undertakerGraveyard());
+                act.completedWorldObjectives().add(EXPEDITION_CACHE_PLACED);data.dirty();
+            }
+            if(!act.completedWorldObjectives().contains(GRAVEYARD_PLACED)){
+                act.setUndertakerGraveyard(placeGraveyard(level,act.undertakerGraveyard(),act.settlement()));
+                act.completedWorldObjectives().add(GRAVEYARD_PLACED);data.dirty();
+            }
+            // Regional coordinates are reserved during initial layout selection, but distant terrain
+            // is deliberately left untouched. The Raven encounter uses the selected natural site.
             EncounterManager.registerDefaults(act);
             act.setStatus(WashedAshoreGenerationStatus.COMPLETE);
             CampaignCore.LOGGER.info("act_structure_placement_complete instance={}",act.actInstanceId());
         } catch(RuntimeException ex) {
-            act.setStatus(WashedAshoreGenerationStatus.DEGRADED);
-            EncounterManager.registerDefaults(act);
-            CampaignCore.LOGGER.error("act_structure_placement_degraded",ex);
+            // Each completed phase is checkpointed above. Leave the act PLACING so a transient
+            // chunk, save, or mod interaction can resume at the first unfinished phase next tick.
+            CampaignCore.LOGGER.error("act_structure_placement_attempt_failed_retrying instance={}",act.actInstanceId(),ex);
         }
         data.dirty();
     }
@@ -294,38 +378,120 @@ public final class WashedAshoreLayoutGenerator {
         if(!populatePrimary)data.addInstance(created);
         return null;
     }
+    public static Set<String> placeablePois(){return WashedAshoreInstance.SLOTS;}
+
+    /**
+     * Force-places or relocates one instance POI at the operator's exact requested position.
+     * This intentionally bypasses inhabited-chunk, structure-start, relocation, and settlement-overlap
+     * protections. Bounded footprint and loaded-chunk checks remain to prevent invalid placement work.
+     */
+    public static PoiPlacementResult forcePlacePoi(ServerLevel level,WashedAshoreSavedData data,String poi,BlockPos requested){
+        return forcePlacePoi(level,data,data.act(),poi,requested);
+    }
+    public static PoiPlacementResult forcePlacePoi(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance act,
+                                                    String poi,BlockPos requested){
+        BlockPos actual=requested.immutable();
+        try{
+            ResourceLocation encounter=switch(poi){
+                case "graveyard"->EncounterManager.UNDERTAKER;
+                case "raven"->EncounterManager.RAVEN;
+                case "dark_forest"->EncounterManager.CONSUMING_DREAD;
+                case "devils_crossing"->EncounterManager.THRASHER;
+                case "other_settlement"->EncounterManager.REGIONAL_C;
+                case "sculk_surface"->EncounterManager.SCULK_SURFACE;
+                default->null;
+            };
+            if(encounter!=null&&act.encounters().containsKey(encounter)
+                    &&act.encounters().get(encounter).status()==dev.campaigncore.washedashore.encounter.EncounterStatus.ACTIVE)
+                return PoiPlacementResult.failure("The POI's encounter is active. Abort or finish it before force-placement.");
+            switch(poi){
+                case "beach" -> act.setBeachSpawn(actual);
+                case "guide" -> {
+                    if(act.settlement()==null)return PoiPlacementResult.failure("Place the settlement before the guide so its sign can face inland.");
+                    placeGuide(level,actual,act.settlement());act.setGuideLandmark(actual);
+                    act.completedWorldObjectives().add(GUIDE_PLACED);
+                }
+                case "graveyard" -> {
+                    if(act.settlement()==null)return PoiPlacementResult.failure("Place the settlement before the graveyard so its route can be oriented.");
+                    actual=placeGraveyard(level,actual,act.settlement());act.setUndertakerGraveyard(actual);
+                    act.completedWorldObjectives().add(GRAVEYARD_PLACED);
+                }
+                case "settlement" -> {
+                    var result=FrontierHubRuntimePlacer.placeForced(level,actual);
+                    if(!result.success())return PoiPlacementResult.failure(result.message());
+                    actual=result.settlement().center();act.setSettlement(actual);
+                    act.completedWorldObjectives().add(PRIMARY_HUB_PLACED);
+                    act.completedWorldObjectives().remove(PRIMARY_HUB_JOB_STARTED);
+                }
+                case "raven" -> act.setRavenArena(actual);
+                case "dark_forest" -> act.setDarkForest(actual);
+                case "devils_crossing" -> {
+                    var result=FrontierHubRuntimePlacer.placeRuinedForced(level,actual);
+                    if(!result.success())return PoiPlacementResult.failure(result.message());
+                    actual=result.bounds().getCenter();act.setDevilsCrossing(actual);
+                    act.completedWorldObjectives().add(DEVILS_CROSSING_RUIN_PLACED);
+                    act.completedWorldObjectives().remove(DEVILS_CROSSING_RUIN_STARTED);
+                    act.completedWorldObjectives().remove(DEVILS_CROSSING_RUIN_FAILED);
+                }
+                case "other_settlement" -> {
+                    var result=FrontierHubRuntimePlacer.placeForced(level,actual);
+                    if(!result.success())return PoiPlacementResult.failure(result.message());
+                    actual=result.settlement().center();setOtherSettlement(act,actual);
+                    act.completedWorldObjectives().add(OTHER_HUB_PLACED);
+                    act.completedWorldObjectives().remove(OTHER_HUB_STARTED);
+                    act.completedWorldObjectives().remove(OTHER_HUB_JOB_STARTED);
+                    act.completedWorldObjectives().remove(OTHER_HUB_FAILED);
+                }
+                case "sculk_surface" -> act.setSculkSurface(actual);
+                default -> {return PoiPlacementResult.failure("Unknown POI '"+poi+"'.");}
+            }
+            EncounterManager.registerDefaults(act);
+            if(encounter!=null)EncounterManager.relocateToAuthoredSlot(act,encounter);
+            data.dirty();
+            CampaignCore.LOGGER.warn("operator_force_placed_poi poi={} requested={} actual={} instance={} safeguards_bypassed=true",
+                    poi,requested,actual,act.actInstanceId());
+            return PoiPlacementResult.success(actual);
+        }catch(RuntimeException ex){
+            CampaignCore.LOGGER.error("operator_force_place_poi_failed poi={} requested={}",poi,requested,ex);
+            return PoiPlacementResult.failure(ex.getMessage()==null?ex.getClass().getSimpleName():ex.getMessage());
+        }
+    }
+    public record PoiPlacementResult(boolean success,String message,BlockPos position){
+        private static PoiPlacementResult success(BlockPos position){return new PoiPlacementResult(true,"",position);}
+        private static PoiPlacementResult failure(String message){return new PoiPlacementResult(false,message,null);}
+    }
     public static void tickDeferredOtherHub(ServerLevel level,WashedAshoreSavedData data){
         for(WashedAshoreInstance act:data.instances())tickDeferredOtherHub(level,data,act);
     }
     private static void tickDeferredOtherHub(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance act){
-        if(data.act().completedWorldObjectives().contains(OTHER_HUB_REQUESTED))act.completedWorldObjectives().add(OTHER_HUB_REQUESTED);
         if(!act.completedWorldObjectives().contains(OTHER_HUB_REQUESTED))return;
-        boolean otherFinished=act.completedWorldObjectives().contains(OTHER_HUB_PLACED)
-                ||act.completedWorldObjectives().contains(OTHER_HUB_FAILED);
-        if(!otherFinished){
+        boolean crossingFinished=act.completedWorldObjectives().contains(DEVILS_CROSSING_RUIN_PLACED)
+                ||act.completedWorldObjectives().contains(DEVILS_CROSSING_RUIN_FAILED);
+        // Crossing is the nearer regional stop and must materialize before the distant settlement.
+        // Settlers accepts only one asynchronous placement per dimension, so ordering the jobs here
+        // also prevents the later hub from occupying space that forces Crossing beyond it.
+        if(!crossingFinished){
             try{
-                otherFinished=ensureFrontierHub(level,data,act,act.otherSettlement(),OTHER_HUB_PLACED,false);
+                crossingFinished=ensureRuinedFrontierHub(level,data,act,act.devilsCrossing());
             }catch(RuntimeException ex){
-                act.completedWorldObjectives().add(OTHER_HUB_FAILED);
+                act.completedWorldObjectives().add(DEVILS_CROSSING_RUIN_FAILED);
                 data.dirty();
-                otherFinished=true;
-                CampaignCore.LOGGER.error("deferred_other_frontier_hub_failed position={}",act.otherSettlement(),ex);
+                crossingFinished=true;
+                CampaignCore.LOGGER.error("deferred_devils_crossing_ruin_failed position={}",act.devilsCrossing(),ex);
                 for(var player:level.players()){
                     dev.campaigncore.washedashore.message.CampaignMessages.send(player,"world_preparation_degraded");
                 }
             }
         }
-        // Settlers accepts one asynchronous placement per dimension. Devil's Crossing remains part
-        // of the same deferred construction phase, but is enqueued after the inhabited hub ends.
-        if(!otherFinished)return;
-        if(!act.completedWorldObjectives().contains(DEVILS_CROSSING_RUIN_PLACED)
-                &&!act.completedWorldObjectives().contains(DEVILS_CROSSING_RUIN_FAILED)){
+        if(!crossingFinished)return;
+        if(!act.completedWorldObjectives().contains(OTHER_HUB_PLACED)
+                &&!act.completedWorldObjectives().contains(OTHER_HUB_FAILED)){
             try{
-                ensureRuinedFrontierHub(level,data,act,act.devilsCrossing());
+                ensureFrontierHub(level,data,act,act.otherSettlement(),OTHER_HUB_PLACED,false);
             }catch(RuntimeException ex){
-                act.completedWorldObjectives().add(DEVILS_CROSSING_RUIN_FAILED);
+                act.completedWorldObjectives().add(OTHER_HUB_FAILED);
                 data.dirty();
-                CampaignCore.LOGGER.error("deferred_devils_crossing_ruin_failed position={}",act.devilsCrossing(),ex);
+                CampaignCore.LOGGER.error("deferred_other_frontier_hub_failed position={}",act.otherSettlement(),ex);
                 for(var player:level.players()){
                     dev.campaigncore.washedashore.message.CampaignMessages.send(player,"world_preparation_degraded");
                 }
@@ -334,27 +500,44 @@ public final class WashedAshoreLayoutGenerator {
     }
     private static boolean ensureRuinedFrontierHub(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance act,BlockPos requested){
         if(act.completedWorldObjectives().contains(DEVILS_CROSSING_RUIN_PLACED))return true;
+        java.util.function.Consumer<BlockPos> persistPosition=position->{act.setDevilsCrossing(position);data.dirty();};
         String key=act.actInstanceId()+":"+DEVILS_CROSSING_RUIN_PLACED;
         HubLoadState state=HUB_LOADS.get(key);
         if(state==null||state.level!=level){
             state=new HubLoadState(level,requested);
             HUB_LOADS.put(key,state);
             announceHubConstruction(level,true,DEVILS_CROSSING_RUIN_PLACED,state.center);
-            proactiveRelocate(level,state,RUIN_RELOCATION_FOOTPRINT,act::setDevilsCrossing);
+            proactiveRelocate(level,state,RUIN_RELOCATION_FOOTPRINT,persistPosition,
+                    candidate->crossingPrecedesOtherSettlement(act,candidate));
         }
         if(!loadHubChunks(level,state,DEVILS_CROSSING_RUIN_PLACED))return false;
+        if(!state.enqueued&&!act.completedWorldObjectives().contains(DEVILS_CROSSING_RUIN_STARTED)
+                &&regionalHubCoreOccupied(level,state.center,REGIONAL_RUIN_PROTECTION_RADIUS)){
+            if(relocateHub(level,state,RUIN_RELOCATION_FOOTPRINT,persistPosition,
+                    candidate->crossingPrecedesOtherSettlement(act,candidate)))return false;
+            throw new IllegalStateException("Devil's Crossing site overlaps inhabited chunks or an existing structure");
+        }
         try{
             HubJobResult result=pollOrStartHubJob(level,state,true,DEVILS_CROSSING_RUIN_PLACED);
+            if(state.enqueued&&act.completedWorldObjectives().add(DEVILS_CROSSING_RUIN_STARTED))data.dirty();
             if(result==HubJobResult.WAITING)return false;
             if(result!=HubJobResult.ENDED||!state.worldChanged){
+                act.completedWorldObjectives().remove(DEVILS_CROSSING_RUIN_STARTED);data.dirty();
                 // Settlers refused or no-opped this site (commonly too close to another settlement).
                 // Relocate the ruin to a clear spot and retry rather than failing the objective.
-                if(relocateHub(level,state,RUIN_RELOCATION_FOOTPRINT,act::setDevilsCrossing))return false;
+                if(relocateHub(level,state,RUIN_RELOCATION_FOOTPRINT,persistPosition,
+                        candidate->crossingPrecedesOtherSettlement(act,candidate)))return false;
                 throw new IllegalStateException("Settlers ruined frontier hub could not be placed clear of existing settlements after "+state.relocationAttempts+" relocations");
             }
             BlockPos actual=state.placedCenter!=null?state.placedCenter:state.center;
             act.setDevilsCrossing(actual);
+            // The encounter table is materialized before deferred regional construction. If the ruin
+            // relocates, keep its gameplay anchor with the structure instead of leaving an invisible
+            // trigger/marker at the originally reserved site.
+            EncounterAnchor crossingEncounter=act.encounters().get(EncounterManager.THRASHER);
+            if(crossingEncounter!=null)crossingEncounter.relocate(actual,actual.above());
             act.completedWorldObjectives().add(DEVILS_CROSSING_RUIN_PLACED);
+            act.completedWorldObjectives().remove(DEVILS_CROSSING_RUIN_STARTED);
             releaseHubTickets(state);HUB_LOADS.remove(key);data.dirty();
             announceHubConstruction(level,false,DEVILS_CROSSING_RUIN_PLACED,actual);
             CampaignCore.LOGGER.info("devils_crossing_ruined_hub_complete requested={} actual={}",requested,actual);
@@ -366,27 +549,70 @@ public final class WashedAshoreLayoutGenerator {
     private static boolean ensureFrontierHub(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance act,BlockPos requested,
                                              ResourceLocation completionFlag,boolean primary) {
         if(act.completedWorldObjectives().contains(completionFlag))return true;
+        if(!primary&&act.completedWorldObjectives().contains(OTHER_HUB_STARTED)){
+            BlockPos recovered=findPlacedSettlement(level,requested,96);
+            if(recovered!=null){
+                setOtherSettlement(act,recovered);
+                act.completedWorldObjectives().add(OTHER_HUB_PLACED);
+                act.completedWorldObjectives().remove(OTHER_HUB_STARTED);
+                data.dirty();
+                CampaignCore.LOGGER.info("frontier_hub_reconciled_after_restart requested={} actual={}",requested,recovered);
+                announceHubConstruction(level,false,completionFlag,recovered);
+                return true;
+            }
+        }
+        java.util.function.Consumer<BlockPos> persistPosition=position->{
+            if(primary)act.setSettlement(position);else setOtherSettlement(act,position);
+            data.dirty();
+        };
+        ResourceLocation startedFlag=primary?PRIMARY_HUB_JOB_STARTED:OTHER_HUB_JOB_STARTED;
+        // A shutdown can occur after Settlers registered the settlement but before this class wrote
+        // its completion flag. Adopt only a job we persistently recorded as started.
+        if(startedFlag!=null&&act.completedWorldObjectives().contains(startedFlag)){
+            BlockPos recovered=findPlacedSettlement(level,requested);
+            if(recovered!=null){
+                if(primary)act.setSettlement(recovered);else setOtherSettlement(act,recovered);
+                act.completedWorldObjectives().add(completionFlag);data.dirty();
+                CampaignCore.LOGGER.info("frontier_hub_story_placement_recovered id={} requested={} actual={}",completionFlag,requested,recovered);
+                announceHubConstruction(level,false,completionFlag,recovered);
+                return true;
+            }
+        }
         String key=act.actInstanceId()+":"+completionFlag;
         HubLoadState state=HUB_LOADS.get(key);
         if(state==null||state.level!=level){
             state=new HubLoadState(level,requested);
             HUB_LOADS.put(key,state);
             announceHubConstruction(level,true,completionFlag,state.center);
-            proactiveRelocate(level,state,HUB_RELOCATION_FOOTPRINT,primary?act::setSettlement:act::setOtherSettlement);
+            proactiveRelocate(level,state,HUB_RELOCATION_FOOTPRINT,persistPosition);
         }
         if(!loadHubChunks(level,state,completionFlag))return false;
+        if(!primary&&!state.enqueued&&!act.completedWorldObjectives().contains(OTHER_HUB_STARTED)
+                &&regionalHubCoreOccupied(level,state.center,REGIONAL_HUB_PROTECTION_RADIUS)){
+            if(relocateHub(level,state,HUB_RELOCATION_FOOTPRINT,persistPosition))return false;
+            throw new IllegalStateException("Regional settlement site overlaps inhabited chunks or an existing structure");
+        }
         try {
+            // Do not checkpoint while an unrelated manual placement owns the dimension slot.
+            // Once the slot is free, persist intent immediately before enqueueing our job.
+            if(!state.enqueued&&FrontierHubRuntimePlacer.status(level).isEmpty()
+                    &&!act.completedWorldObjectives().contains(startedFlag)){
+                act.completedWorldObjectives().add(startedFlag);data.dirty();
+            }
             HubJobResult result=pollOrStartHubJob(level,state,false,completionFlag);
+            if(!primary&&state.enqueued&&act.completedWorldObjectives().add(OTHER_HUB_STARTED))data.dirty();
             if(result==HubJobResult.WAITING)return false;
             BlockPos actual=result==HubJobResult.ENDED?findPlacedSettlement(level,state.center):null;
             if(actual==null){
+                if(!primary){act.completedWorldObjectives().remove(OTHER_HUB_STARTED);data.dirty();}
                 // Settlers refused this site or registered no settlement (commonly too close to another).
                 // Relocate to a clear spot and retry rather than failing the objective.
-                if(relocateHub(level,state,HUB_RELOCATION_FOOTPRINT,primary?act::setSettlement:act::setOtherSettlement))return false;
+                if(relocateHub(level,state,HUB_RELOCATION_FOOTPRINT,persistPosition))return false;
                 throw new IllegalStateException("Settlers frontier hub could not be placed clear of existing settlements after "+state.relocationAttempts+" relocations");
             }
-            if(primary)act.setSettlement(actual);else act.setOtherSettlement(actual);
+            if(primary)act.setSettlement(actual);else setOtherSettlement(act,actual);
             act.completedWorldObjectives().add(completionFlag);
+            if(!primary)act.completedWorldObjectives().remove(OTHER_HUB_STARTED);
             releaseHubTickets(state);
             HUB_LOADS.remove(key);
             data.dirty();
@@ -448,17 +674,58 @@ public final class WashedAshoreLayoutGenerator {
         return centers;
     }
     private static BlockPos findPlacedSettlement(ServerLevel level,BlockPos requested){
+        return findPlacedSettlement(level,requested,256);
+    }
+    private static BlockPos findPlacedSettlement(ServerLevel level,BlockPos requested,int maximumDistance){
         BlockPos nearest=null;double nearestDistance=Double.MAX_VALUE;
         for(BlockPos center:settlementCenters(level)){
             double distance=center.distSqr(requested);
             if(distance<nearestDistance){nearest=center;nearestDistance=distance;}
         }
-        return nearestDistance<=256.0D*256.0D?nearest:null;
+        return nearestDistance<=(double)maximumDistance*maximumDistance?nearest:null;
     }
     private static boolean clearOfSettlements(ServerLevel level,BlockPos candidate,int separation){
         double minimum=(double)separation*separation;
         for(BlockPos center:settlementCenters(level))if(center.distSqr(candidate)<minimum)return false;
         return true;
+    }
+    private static void setOtherSettlement(WashedAshoreInstance act,BlockPos position){
+        act.setOtherSettlement(position);
+        EncounterAnchor encounter=act.encounters().get(EncounterManager.REGIONAL_C);
+        if(encounter!=null&&encounter.status()!=dev.campaigncore.washedashore.encounter.EncounterStatus.ACTIVE
+                &&encounter.status()!=dev.campaigncore.washedashore.encounter.EncounterStatus.COMPLETED)
+            encounter.relocate(position,position.above());
+    }
+    /**
+     * Protects explored land and worldgen structures from deferred regional construction. Player-made
+     * edits cannot be identified perfectly from chunk data, so inhabited time is the conservative signal.
+     * A lone block entity and structure start are normal worldgen baseline in modpacks; multiple distinct
+     * starts inside the core indicate a meaningful generated landmark cluster worth preserving.
+     */
+    private static boolean regionalHubCoreOccupied(ServerLevel level,BlockPos center,int radius){
+        int centerX=center.getX()>>4,centerZ=center.getZ()>>4;
+        int chunkRadius=(radius+15)/16;
+        BoundingBox protectedArea=new BoundingBox(center.getX()-radius,level.getMinBuildHeight(),center.getZ()-radius,
+                center.getX()+radius,level.getMaxBuildHeight()-1,center.getZ()+radius);
+        Set<BlockPos> blockEntities=new HashSet<>();
+        Set<StructureStart> structureStarts=Collections.newSetFromMap(new IdentityHashMap<>());
+        for(int dx=-chunkRadius;dx<=chunkRadius;dx++)
+            for(int dz=-chunkRadius;dz<=chunkRadius;dz++){
+                var chunk=level.getChunk(centerX+dx,centerZ+dz);
+                chunk.getBlockEntities().keySet().stream().filter(protectedArea::isInside).forEach(blockEntities::add);
+                chunk.getAllStarts().values().stream().filter(start->
+                        start.isValid()&&start.getBoundingBox().intersects(protectedArea)).forEach(structureStarts::add);
+                boolean inhabited=chunk.getInhabitedTime()>=REGIONAL_HUB_INHABITED_PROTECTION_TICKS;
+                if(regionalHubEvidenceOccupied(inhabited,structureStarts.size())){
+                    CampaignCore.LOGGER.info("regional_hub_site_protected center={} occupied_chunk={} inhabited_time={} block_entities={} structure_starts={}",
+                            center,chunk.getPos(),chunk.getInhabitedTime(),blockEntities.size(),structureStarts.size());
+                    return true;
+                }
+            }
+        return false;
+    }
+    static boolean regionalHubEvidenceOccupied(boolean inhabited,int structureStartCount){
+        return inhabited||structureStartCount>1;
     }
     /**
      * Fallback for a Settlers placement that was refused or produced nothing: spirals outward from the
@@ -468,26 +735,35 @@ public final class WashedAshoreLayoutGenerator {
      */
     private static boolean relocateHub(ServerLevel level,HubLoadState state,int footprintRadius,
                                        java.util.function.Consumer<BlockPos> positionSink){
-        if(state.relocationAttempts>=MAX_HUB_RELOCATIONS)return false;
-        state.relocationAttempts++;
+        return relocateHub(level,state,footprintRadius,positionSink,candidate->true);
+    }
+    private static boolean relocateHub(ServerLevel level,HubLoadState state,int footprintRadius,
+                                       java.util.function.Consumer<BlockPos> positionSink,
+                                       java.util.function.Predicate<BlockPos> allowed){
+        int maximumRelocations=Math.max(0,WashedAshoreConfig.INSTANCE.frontierHubPlacementAttempts-1);
         int separation=WashedAshoreConfig.INSTANCE.settlementSeparation;
         BlockPos origin=state.originalCenter;
-        for(int i=1;i<=24;i++){
-            double angle=i*2.399963229728653;
-            double radius=separation*(1.0+i/24.0*3.0)+(double)state.relocationAttempts*separation;
-            BlockPos candidate=generatedGround(level,origin.offset(
-                    Mth.floor(Math.cos(angle)*radius),0,Mth.floor(Math.sin(angle)*radius)));
-            if(isGeneratedDryArea(level,candidate,footprintRadius,4)&&clearOfSettlements(level,candidate,separation)){
-                releaseHubTickets(state);
-                state.retarget(candidate);
-                positionSink.accept(candidate);
-                CampaignCore.LOGGER.info("frontier_hub_relocated attempt={} from={} to={} separation={}",
-                        state.relocationAttempts,origin,candidate,separation);
-                return true;
+        while(state.relocationAttempts<maximumRelocations){
+            state.relocationAttempts++;
+            for(int i=1;i<=24;i++){
+                double angle=i*2.399963229728653;
+                double radius=separation*(1.0+i/24.0*3.0)+(double)state.relocationAttempts*separation;
+                BlockPos candidate=generatedGround(level,origin.offset(
+                        Mth.floor(Math.cos(angle)*radius),0,Mth.floor(Math.sin(angle)*radius)));
+                if(allowed.test(candidate)&&isGeneratedDryArea(level,candidate,footprintRadius,4)&&clearOfSettlements(level,candidate,separation)){
+                    releaseHubTickets(state);
+                    state.retarget(candidate);
+                    positionSink.accept(candidate);
+                    CampaignCore.LOGGER.info("frontier_hub_relocated placement_attempt={}/{} from={} to={} separation={}",
+                            state.relocationAttempts+1,WashedAshoreConfig.INSTANCE.frontierHubPlacementAttempts,origin,candidate,separation);
+                    return true;
+                }
             }
+            CampaignCore.LOGGER.info("frontier_hub_relocation_ring_exhausted placement_attempt={}/{} origin={} separation={}",
+                    state.relocationAttempts+1,WashedAshoreConfig.INSTANCE.frontierHubPlacementAttempts,origin,separation);
         }
-        CampaignCore.LOGGER.warn("frontier_hub_relocation_no_site attempt={} origin={} separation={}",
-                state.relocationAttempts,origin,separation);
+        CampaignCore.LOGGER.warn("frontier_hub_relocation_no_site placement_attempts={} origin={} separation={}",
+                WashedAshoreConfig.INSTANCE.frontierHubPlacementAttempts,origin,separation);
         return false;
     }
     /**
@@ -499,6 +775,28 @@ public final class WashedAshoreLayoutGenerator {
                                           java.util.function.Consumer<BlockPos> positionSink){
         if(!clearOfSettlements(level,state.center,WashedAshoreConfig.INSTANCE.settlementSeparation))
             relocateHub(level,state,footprintRadius,positionSink);
+    }
+    private static void proactiveRelocate(ServerLevel level,HubLoadState state,int footprintRadius,
+                                          java.util.function.Consumer<BlockPos> positionSink,
+                                          java.util.function.Predicate<BlockPos> allowed){
+        if(!clearOfSettlements(level,state.center,WashedAshoreConfig.INSTANCE.settlementSeparation))
+            relocateHub(level,state,footprintRadius,positionSink,allowed);
+    }
+    private static boolean crossingPrecedesOtherSettlement(WashedAshoreInstance act,BlockPos candidate){
+        if(act.settlement()==null||act.otherSettlement()==null)return true;
+        double routeX=act.otherSettlement().getX()-act.settlement().getX();
+        double routeZ=act.otherSettlement().getZ()-act.settlement().getZ();
+        double routeLengthSquared=routeX*routeX+routeZ*routeZ;
+        if(routeLengthSquared<1)return false;
+        double candidateX=candidate.getX()-act.settlement().getX();
+        double candidateZ=candidate.getZ()-act.settlement().getZ();
+        double progress=(candidateX*routeX+candidateZ*routeZ)/routeLengthSquared;
+        // Keep Crossing clearly between the two settlements rather than merely closer to the first.
+        if(progress<0.15||progress>0.85)return false;
+        double lateralX=candidateX-progress*routeX;
+        double lateralZ=candidateZ-progress*routeZ;
+        double corridor=Math.max(512.0,Math.sqrt(routeLengthSquared)*0.25);
+        return lateralX*lateralX+lateralZ*lateralZ<=corridor*corridor;
     }
     private static boolean loadHubChunks(ServerLevel level,HubLoadState state,ResourceLocation id){
         int loaded=0;
@@ -658,41 +956,6 @@ public final class WashedAshoreLayoutGenerator {
             level.setBlock(cursor.set(center.getX()+x,desired,center.getZ()+z),Blocks.GRASS_BLOCK.defaultBlockState(),2);
         }
     }
-    private static BlockPos placeRavenArena(ServerLevel level,BlockPos requested){
-        List<Integer> heights=new ArrayList<>();
-        for(int x=-RAVEN_ARENA_RADIUS;x<=RAVEN_ARENA_RADIUS;x+=4)
-            for(int z=-RAVEN_ARENA_RADIUS;z<=RAVEN_ARENA_RADIUS;z+=4)
-                if(x*x+z*z<=RAVEN_ARENA_RADIUS*RAVEN_ARENA_RADIUS)
-                    heights.add(naturalGroundY(level,requested.getX()+x,requested.getZ()+z));
-        Collections.sort(heights);
-        int targetY=heights.isEmpty()?requested.getY():heights.get(heights.size()/2);
-        int outer=RAVEN_ARENA_RADIUS+RAVEN_ARENA_BLEND_RADIUS,changed=0;
-        BlockPos.MutableBlockPos cursor=new BlockPos.MutableBlockPos();
-        for(int x=-outer;x<=outer;x++)for(int z=-outer;z<=outer;z++){
-            double distance=Math.sqrt(x*x+z*z);if(distance>outer)continue;
-            int worldX=requested.getX()+x,worldZ=requested.getZ()+z;
-            int current=naturalGroundY(level,worldX,worldZ);
-            double blend=Mth.clamp((distance-RAVEN_ARENA_RADIUS)/RAVEN_ARENA_BLEND_RADIUS,0.0,1.0);
-            int desired=Mth.floor(Mth.lerp(blend,targetY,current));
-            int clearTop=level.getHeight(Heightmap.Types.WORLD_SURFACE,worldX,worldZ)+2;
-            for(int y=desired+1;y<=clearTop;y++){
-                cursor.set(worldX,y,worldZ);
-                if(!level.getBlockState(cursor).isAir()){level.setBlock(cursor,Blocks.AIR.defaultBlockState(),2);changed++;}
-            }
-            for(int y=Math.min(current,desired);y<desired;y++){
-                cursor.set(worldX,y,worldZ);
-                if(!level.getBlockState(cursor).is(Blocks.DIRT)){level.setBlock(cursor,Blocks.DIRT.defaultBlockState(),2);changed++;}
-            }
-            cursor.set(worldX,desired,worldZ);
-            BlockState top=distance<=RAVEN_ARENA_RADIUS?Blocks.DEEPSLATE_TILES.defaultBlockState():Blocks.GRASS_BLOCK.defaultBlockState();
-            if(!level.getBlockState(cursor).equals(top)){level.setBlock(cursor,top,3);changed++;}
-        }
-        BlockPos center=new BlockPos(requested.getX(),targetY,requested.getZ());
-        level.setBlock(center.above(),Blocks.SCULK_CATALYST.defaultBlockState(),3);
-        CampaignCore.LOGGER.info("raven_arena_terrain_fitted requested={} center={} radius={} blend_radius={} changed_blocks={}",
-                requested,center,RAVEN_ARENA_RADIUS,RAVEN_ARENA_BLEND_RADIUS,changed);
-        return center;
-    }
     private static BlockPos surface(ServerLevel level,BlockPos pos){
         // Unprepared chunks can expose an empty heightmap and produce a below-world Y.
         // Search is staged, so forcing only this candidate chunk remains bounded.
@@ -707,14 +970,18 @@ public final class WashedAshoreLayoutGenerator {
      * nearest forest is located exactly as {@code /locate biome} does to guarantee dread-eligibility.
      */
     private static BlockPos findForestedSite(ServerLevel level,BlockPos settlement,Random random){
+        var cfg=WashedAshoreConfig.INSTANCE;
+        int minimumDistance=Math.max(DARK_FOREST_MINIMUM_DISTANCE_FROM_SETTLEMENT,cfg.forestMinimumDistanceFromSettlement);
+        int maximumDistance=Math.max(minimumDistance,cfg.forestMaximumDistanceFromSettlement);
         for(int i=0;i<24;i++){
-            double angle=random.nextDouble()*Math.PI*2,distance=180+random.nextDouble()*220;
+            double angle=random.nextDouble()*Math.PI*2;
+            double distance=randomDistance(random,minimumDistance,maximumDistance);
             BlockPos candidate=generatedGround(level,settlement.offset(Mth.floor(Math.cos(angle)*distance),0,Mth.floor(Math.sin(angle)*distance)));
-            if(isForest(level,candidate)&&isGeneratedDryArea(level,candidate,12,4))return candidate;
+            if(isFarEnoughFromSettlement(candidate,settlement)&&isForest(level,candidate)&&isGeneratedDryArea(level,candidate,12,4))return candidate;
         }
         var located=level.findClosestBiome3d(biome->biome.is(BiomeTags.IS_FOREST),settlement.atY(level.getSeaLevel()),6400,32,64);
         if(located!=null){
-            BlockPos forest=dryForestNear(level,located.getFirst());
+            BlockPos forest=dryForestNear(level,located.getFirst(),settlement);
             if(forest!=null){
                 CampaignCore.LOGGER.info("dread_poi_forest_located settlement={} biome_center={} site={}",settlement,located.getFirst(),forest);
                 return forest;
@@ -722,23 +989,29 @@ public final class WashedAshoreLayoutGenerator {
         }
         // No forest anywhere in range: such a world cannot host the dread event regardless of placement.
         CampaignCore.LOGGER.warn("dread_poi_no_forest_in_range settlement={}; dread event may be ineligible at fallback",settlement);
-        return resolveDrySite(level,settlement.offset(240,0,0),96,12,4);
+        BlockPos requested=settlement.offset(minimumDistance,0,0);
+        BlockPos fallback=resolveDrySite(level,requested,96,12,4);
+        return isFarEnoughFromSettlement(fallback,settlement)?fallback:generatedGround(level,requested);
     }
     private static boolean isForest(ServerLevel level,BlockPos pos){
         return level.getUncachedNoiseBiome(pos.getX()>>2,pos.getY()>>2,pos.getZ()>>2).is(BiomeTags.IS_FOREST);
     }
     /** A dry, buildable forest column near the located biome center, falling back to any forest column
      *  there (dread-eligibility outranks a perfectly dry footprint). Null only if none is forest. */
-    private static BlockPos dryForestNear(ServerLevel level,BlockPos located){
+    private static BlockPos dryForestNear(ServerLevel level,BlockPos located,BlockPos settlement){
         BlockPos forestFallback=null;
         for(int i=0;i<24;i++){
             double angle=i*2.399963229728653,radius=i==0?0:Math.min(160,8+i*6.0);
             BlockPos candidate=generatedGround(level,located.offset(Mth.floor(Math.cos(angle)*radius),0,Mth.floor(Math.sin(angle)*radius)));
-            if(!isForest(level,candidate))continue;
+            if(!isFarEnoughFromSettlement(candidate,settlement)||!isForest(level,candidate))continue;
             if(forestFallback==null)forestFallback=candidate;
             if(isGeneratedDryArea(level,candidate,12,4))return candidate;
         }
         return forestFallback;
+    }
+    private static boolean isFarEnoughFromSettlement(BlockPos candidate,BlockPos settlement){
+        long dx=(long)candidate.getX()-settlement.getX(),dz=(long)candidate.getZ()-settlement.getZ();
+        return dx*dx+dz*dz>=(long)DARK_FOREST_MINIMUM_DISTANCE_FROM_SETTLEMENT*DARK_FOREST_MINIMUM_DISTANCE_FROM_SETTLEMENT;
     }
     private static BlockPos resolveDrySite(ServerLevel level,BlockPos requested,int searchRadius,int footprintRadius,int sampleStep){
         BlockPos first=generatedGround(level,requested);

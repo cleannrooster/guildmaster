@@ -7,5 +7,5 @@
   "variant": "restless_guardian",
   "display_name": "encounter.campaign_core.washed_ashore.variant.restless_guardian",
   "boss_bar": true,
-  "attributes": { "max_health": 100, "damage_multiplier": 0.9 }
+  "attributes": { "max_health": 75, "damage_multiplier": 0.5 }
 }

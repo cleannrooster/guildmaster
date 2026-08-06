@@ -7,6 +7,9 @@ import dev.architectury.networking.NetworkManager;
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
 import dev.campaigncore.network.CampaignNetwork;
 import dev.campaigncore.network.ObjectiveMarker;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
 import net.minecraft.core.BlockPos;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.network.chat.Component;
@@ -53,8 +56,9 @@ public final class CampaignCoreClient {
         NetworkManager.registerReceiver(NetworkManager.Side.S2C,CampaignNetwork.OBJECTIVE_MARKERS,(buffer,context)->{
             int count=buffer.readVarInt();
             java.util.List<ObjectiveMarker> targets=new java.util.ArrayList<>(count);
-            for(int i=0;i<count;i++)targets.add(new ObjectiveMarker(buffer.readResourceLocation(),buffer.readBlockPos(),
-                    buffer.readEnum(ObjectiveMarker.Type.class),buffer.readBoolean()));
+            for(int i=0;i<count;i++)targets.add(new ObjectiveMarker(buffer.readResourceLocation(),
+                    ResourceKey.create(Registries.DIMENSION,buffer.readResourceLocation()),buffer.readBlockPos(),
+                    buffer.readEnum(ObjectiveMarker.Type.class),buffer.readEnum(ObjectiveMarker.Category.class)));
             context.queue(()->GuideGlowState.update(targets));
         });
     }

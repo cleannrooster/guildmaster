@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.campaigncore.settlers.production.ProductionStateTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-08-03T06:36:44.521Z" hostname="TOASTER" time="0.01">
+<testsuite name="dev.campaigncore.settlers.production.ProductionStateTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-08-06T22:35:11.424Z" hostname="TOASTER" time="0.014">
   <properties/>
   <testcase name="copyConstructorIsDeep()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.001"/>
-  <testcase name="storedAccumulates()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.0"/>
-  <testcase name="consumeStoredRejectsNegativeAndNonFinite()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.001"/>
-  <testcase name="rejectsNegativeAndNonFinite()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.002"/>
-  <testcase name="consumeStoredSubtractsUpToAvailable()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.001"/>
+  <testcase name="storedAccumulates()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.001"/>
+  <testcase name="consumeStoredRejectsNegativeAndNonFinite()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.002"/>
+  <testcase name="rejectsNegativeAndNonFinite()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.001"/>
+  <testcase name="consumeStoredSubtractsUpToAvailable()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.0"/>
   <testcase name="progressAccumulates()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.001"/>
   <testcase name="consumeProgressUnitsFloorsAndLeavesRemainder()" classname="dev.campaigncore.settlers.production.ProductionStateTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>

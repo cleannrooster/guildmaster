@@ -4,6 +4,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import java.util.HashSet;
 import java.util.Set;
+import dev.campaigncore.prestige.PrestigeLedger;
 import dev.campaigncore.washedashore.recovery.ProneRecoveryData;
 
 public final class WashedAshoreProgress {
@@ -19,7 +20,9 @@ public final class WashedAshoreProgress {
     private boolean fragmentDreadInvocation;
     private boolean fragmentCrossingInvocation;
     private boolean questKeybindUsed;
+    private boolean voidWaitingPlayed;
     private ProneRecoveryData proneRecovery = new ProneRecoveryData();
+    private PrestigeLedger prestige = new PrestigeLedger();
 
     public WashedAshoreStage stage() { return stage; }
     public boolean introPlayed() { return introPlayed; }
@@ -31,6 +34,7 @@ public final class WashedAshoreProgress {
     public boolean fragmentDreadInvocation() { return fragmentDreadInvocation; }
     public boolean fragmentCrossingInvocation() { return fragmentCrossingInvocation; }
     public boolean questKeybindUsed() { return questKeybindUsed; }
+    public boolean voidWaitingPlayed() { return voidWaitingPlayed; }
     public ProneRecoveryData proneRecovery() { return proneRecovery; }
     public Set<ResourceLocation> defeatedBosses() { return Set.copyOf(defeatedBosses); }
     public Set<ResourceLocation> discoveredLandmarks() { return Set.copyOf(discoveredLandmarks); }
@@ -52,6 +56,14 @@ public final class WashedAshoreProgress {
     public void clearFragmentDreadInvocation() { fragmentDreadInvocation = false; }
     public void clearFragmentCrossingInvocation() { fragmentCrossingInvocation = false; }
     public void markQuestKeybindUsed() { questKeybindUsed = true; }
+    public void markVoidWaitingPlayed() { voidWaitingPlayed = true; }
+    public PrestigeLedger prestige() { return prestige; }
+    /** First-run progress carrying only the prestige ledger forward (the prestige wipe preserves it). */
+    public WashedAshoreProgress resetForPrestige() {
+        WashedAshoreProgress fresh = new WashedAshoreProgress();
+        fresh.prestige = prestige;
+        return fresh;
+    }
 
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
@@ -65,7 +77,9 @@ public final class WashedAshoreProgress {
         tag.putBoolean("fragment_dread_invocation",fragmentDreadInvocation);
         tag.putBoolean("fragment_crossing_invocation",fragmentCrossingInvocation);
         tag.putBoolean("quest_keybind_used",questKeybindUsed);
+        tag.putBoolean("void_waiting_played",voidWaitingPlayed);
         tag.put("prone_recovery",proneRecovery.save());
+        tag.put("prestige",prestige.save());
         tag.putString("defeated", defeatedBosses.stream().map(ResourceLocation::toString).sorted().reduce("", (a,b) -> a + (a.isEmpty()?"":";") + b));
         tag.putString("discovered", discoveredLandmarks.stream().map(ResourceLocation::toString).sorted().reduce("", (a,b) -> a + (a.isEmpty()?"":";") + b));
         return tag;
@@ -83,7 +97,9 @@ public final class WashedAshoreProgress {
         result.fragmentDreadInvocation=tag.getBoolean("fragment_dread_invocation");
         result.fragmentCrossingInvocation=tag.getBoolean("fragment_crossing_invocation");
         result.questKeybindUsed=tag.getBoolean("quest_keybind_used");
+        result.voidWaitingPlayed=tag.getBoolean("void_waiting_played");
         if(tag.contains("prone_recovery"))result.proneRecovery=ProneRecoveryData.load(tag.getCompound("prone_recovery"));
+        if(tag.contains("prestige"))result.prestige=PrestigeLedger.load(tag.getCompound("prestige"));
         parseIds(tag.getString("defeated"), result.defeatedBosses);
         parseIds(tag.getString("discovered"), result.discoveredLandmarks);
         return result;

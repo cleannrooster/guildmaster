@@ -10,6 +10,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.monster.Zombie;
@@ -27,7 +28,7 @@ public final class HubIncidentManager {
     public static void tick(ServerLevel level,WashedAshoreSavedData data){
         if(level!=level.getServer().overworld()||level.getGameTime()%TICK_INTERVAL!=0)return;
         long now=level.getGameTime();
-        for(WashedAshoreInstance act:data.instances())for(var entry:HubIncidentRegistry.hubs().entrySet()){
+        for(WashedAshoreInstance act:data.instances())if(act.contentReady())for(var entry:HubIncidentRegistry.hubs().entrySet()){
             ResourceLocation hubId=entry.getKey();HubDefinition hub=entry.getValue();BlockPos hubCenter=act.slot(hub.slot());
             if(hubCenter==null)continue;
             HubIncidentState state=data.hubIncident(act.actInstanceId(),hubId);
@@ -150,8 +151,23 @@ public final class HubIncidentManager {
     private static void finish(ServerLevel level,WashedAshoreSavedData data,HubDefinition hub,HubIncidentState state,long now,boolean success){
         Set<UUID> cleanup=new HashSet<>(state.members());cleanup.addAll(state.opponents());cleanup.addAll(state.temporaryEntities());
         for(UUID id:cleanup){Entity entity=level.getEntity(id);if(entity!=null){if(entity.getVehicle()!=null)entity.getVehicle().discard();entity.discard();}}
-        ResourceLocation incident=state.activeIncident();BlockPos center=state.center();state.finish(now+hub.intervalTicks());data.dirty();
+        ResourceLocation incident=state.activeIncident();BlockPos center=state.center();
+        if(success&&center!=null)HubIncidentRegistry.incident(incident).flatMap(HubIncidentDefinition::rewardLootTable)
+                .ifPresent(table->grantResponderRewards(level,center,hub.playerRadius(),incident,table));
+        state.finish(now+hub.intervalTicks());data.dirty();
         announce(level,center,hub.playerRadius(),incident,success?"success":"failure");CampaignCore.LOGGER.info("hub_incident_finished incident={} success={}",incident,success);
+    }
+    private static void grantResponderRewards(ServerLevel level,BlockPos center,int radius,ResourceLocation incidentId,ResourceLocation tableId){
+        var key=net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE,tableId);
+        var table=level.getServer().reloadableRegistries().getLootTable(key);
+        for(ServerPlayer player:level.players()){
+            if(!player.isAlive()||player.blockPosition().distSqr(center)>Mth.square(radius))continue;
+            var params=new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
+                    .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN,player.position())
+                    .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
+            for(var stack:table.getRandomItems(params))if(!stack.isEmpty()&&!player.getInventory().add(stack))player.drop(stack,false);
+            CampaignCore.LOGGER.info("hub_incident_reward_granted incident={} player={} table={}",incidentId,player.getUUID(),tableId);
+        }
     }
     private static void navigate(Mob mob,HubIncidentSpawnType type,BlockPos center,BlockPos destination){
         if(type==HubIncidentSpawnType.APPROACHING_HUB)mob.getNavigation().moveTo(center.getX()+.5,center.getY(),center.getZ()+.5,1.0);
@@ -192,7 +208,8 @@ public final class HubIncidentManager {
         if(hub==null||definition==null||hub.tier()!=definition.tier())return false;
         // A hub id describes a hub type. In multi-instance worlds, target the matching hub nearest
         // the command source instead of silently operating at the original storyline's distant hub.
-        WashedAshoreInstance targetAct=data.instances().stream().filter(act->act.slot(hub.slot())!=null)
+        WashedAshoreInstance targetAct=data.instances().stream().filter(WashedAshoreInstance::contentReady)
+                .filter(act->act.slot(hub.slot())!=null)
                 .min(Comparator.comparingDouble(act->act.slot(hub.slot()).distSqr(commandOrigin))).orElse(null);
         if(targetAct==null)return false;
         BlockPos hubCenter=targetAct.slot(hub.slot());HubIncidentState state=data.hubIncident(targetAct.actInstanceId(),hubId);
@@ -210,7 +227,8 @@ public final class HubIncidentManager {
     /** Operator/debug entry point: aborts and cleans the active incident at a hub. */
     public static boolean debugStop(ServerLevel level,WashedAshoreSavedData data,ResourceLocation hubId,BlockPos commandOrigin){
         HubDefinition hub=HubIncidentRegistry.hubs().get(hubId);if(hub==null)return false;
-        WashedAshoreInstance targetAct=data.instances().stream().filter(act->act.slot(hub.slot())!=null)
+        WashedAshoreInstance targetAct=data.instances().stream().filter(WashedAshoreInstance::contentReady)
+                .filter(act->act.slot(hub.slot())!=null)
                 .min(Comparator.comparingDouble(act->act.slot(hub.slot()).distSqr(commandOrigin))).orElse(null);
         if(targetAct==null)return false;
         HubIncidentState state=data.hubIncident(targetAct.actInstanceId(),hubId);

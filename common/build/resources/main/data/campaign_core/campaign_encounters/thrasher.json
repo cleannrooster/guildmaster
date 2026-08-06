@@ -12,6 +12,7 @@
     "discovery_radius": 56,
     "fill_up": 4,
     "fill_down": -1,
+    "harvest_fill": 15,
     "threshold": 100,
     "milestones": [
       { "mode": "bucket", "step": 25, "message": "crossing_progress", "pass_level": true }
@@ -29,6 +30,6 @@
   },
   "on_complete": {
     "message": "crossing_horde_repelled",
-    "handlers": ["complete_crossing_quest", "regional_objectives_gate"]
+    "handlers": ["complete_crossing_quest", "unlock_second_settlement", "regional_objectives_gate"]
   }
 }

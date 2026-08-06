@@ -25,6 +25,8 @@ public final class WashedAshoreInstance {
     private long sculkEncounterStartTick;
     private int sculkWavesSpawned;
     private UUID sculkRaven;
+    /** Player whose Fragment of Blight invoked the current sculk fight; null = normal fight. */
+    private UUID sculkPrestigeInvoker;
     /** Persisted timing/count baseline for the distant-settlement raid's mercy completion. */
     private long settlementRaidStartTick=-1;
     private int settlementRaidInitialCount;
@@ -50,12 +52,18 @@ public final class WashedAshoreInstance {
     public void setSculkWavesSpawned(int value){sculkWavesSpawned=Math.max(0,value);}
     public UUID sculkRaven(){return sculkRaven;}
     public void setSculkRaven(UUID uuid){sculkRaven=uuid;}
+    public UUID sculkPrestigeInvoker(){return sculkPrestigeInvoker;}
+    public void setSculkPrestigeInvoker(UUID uuid){sculkPrestigeInvoker=uuid;}
     public long settlementRaidStartTick(){return settlementRaidStartTick;}
     public void setSettlementRaidStartTick(long tick){settlementRaidStartTick=tick;}
     public int settlementRaidInitialCount(){return settlementRaidInitialCount;}
     public void setSettlementRaidInitialCount(int count){settlementRaidInitialCount=Math.max(0,count);}
     public boolean worldSpawnStoryline(){return worldSpawnStoryline;}
     public void setWorldSpawnStoryline(boolean value){worldSpawnStoryline=value;}
+    public boolean contentReady(){
+        return hasLayout()&&(generationStatus==WashedAshoreGenerationStatus.COMPLETE
+                ||generationStatus==WashedAshoreGenerationStatus.DEGRADED);
+    }
     /** Resolves a canonical {@link #SLOTS} name to its selected world position, or null if unset. */
     public BlockPos slot(String name){
         return switch(name){
@@ -78,12 +86,14 @@ public final class WashedAshoreInstance {
         this.beachSpawn=beach;this.guideLandmark=guide;this.undertakerGraveyard=graveyard;this.settlement=settlement;this.ravenArena=raven;
     }
     public void setBeachSpawn(BlockPos beach){this.beachSpawn=beach;}
+    public void setGuideLandmark(BlockPos position){this.guideLandmark=position;}
     public void setBeachSearchCenter(BlockPos center){this.beachSearchCenter=center;}
     public void setSettlement(BlockPos position){this.settlement=position;}
     public void setOtherSettlement(BlockPos position){this.otherSettlement=position;}
     public void setDevilsCrossing(BlockPos position){this.devilsCrossing=position;}
     public void setUndertakerGraveyard(BlockPos position){this.undertakerGraveyard=position;}
     public void setRavenArena(BlockPos position){this.ravenArena=position;}
+    public void setDarkForest(BlockPos position){this.darkForest=position;}
     public void setSculkSurface(BlockPos position){this.sculkSurface=position;}
     public void setRegionalLayout(BlockPos forest, BlockPos crossing, BlockPos other) {
         darkForest=forest;devilsCrossing=crossing;otherSettlement=other;
@@ -94,7 +104,7 @@ public final class WashedAshoreInstance {
         actInstanceId=UUID.randomUUID();generationStatus=WashedAshoreGenerationStatus.UNINITIALIZED;
         beachSpawn=guideLandmark=undertakerGraveyard=settlement=ravenArena=darkForest=devilsCrossing=otherSettlement=beachSearchCenter=sculkSurface=null;
         encounters.clear();completedWorldObjectives.clear();generationAttempts=0;crossingHordeWave=0;
-        sculkMobDeaths=0;sculkEncounterStartTick=0;sculkWavesSpawned=0;sculkRaven=null;
+        sculkMobDeaths=0;sculkEncounterStartTick=0;sculkWavesSpawned=0;sculkRaven=null;sculkPrestigeInvoker=null;
         settlementRaidStartTick=-1;settlementRaidInitialCount=0;
         worldSpawnStoryline=true;
     }

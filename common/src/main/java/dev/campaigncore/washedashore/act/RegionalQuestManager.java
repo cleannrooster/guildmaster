@@ -128,8 +128,9 @@ public final class RegionalQuestManager {
         // temporary wave horde from the churned ground around the crossing (see CrossingHordeManager).
         ctx.progress().setCrossingQuest(RegionalQuestStage.BOSS_ACTIVE);
         CrossingHordeManager.begin(ctx.level(),ctx.data(),ctx.encounter(),ctx.player());
+        WashedAshoreInstance owner=ctx.data().instanceFor(ctx.encounter());
         CampaignCore.LOGGER.info("devils_crossing_investigation_complete player={} crossing={}",
-                ctx.player().getUUID(),ctx.data().act().devilsCrossing());
+                ctx.player().getUUID(),owner==null?ctx.encounter().anchorPos():owner.devilsCrossing());
     }
     /** A surface column a short distance from the player, in a random horizontal direction. */
     private static BlockPos thrasherSpawnNear(ServerLevel level,ServerPlayer player){
@@ -161,21 +162,17 @@ public final class RegionalQuestManager {
             CampaignMessages.send(player,"dark_forest");changed=true;
         }
         if(progress.crossingQuest()==RegionalQuestStage.LOCKED){
+            WashedAshoreInstance crossing=nearestInstance(data,player,"devils_crossing");
             progress.setCrossingQuest(RegionalQuestStage.AVAILABLE);
             CampaignMessages.send(player,"crossing_route",
-                    Component.translatable("direction.campaign_core.washed_ashore."+directionHint(player.blockPosition(),data.act().devilsCrossing())));
-            // Regional Encounter C is its own objective now: warn the distant settlement before the raid.
-            if(!data.act().completedWorldObjectives().contains(EncounterManager.REGIONAL_C))
-                CampaignMessages.send(player,"other_settlement",
-                        SettlementDialogueNames.distant(player.serverLevel(),data.act()),
-                        Component.translatable("direction.campaign_core.washed_ashore."+directionHint(player.blockPosition(),data.act().otherSettlement())));
+                    Component.translatable("direction.campaign_core.washed_ashore."+directionHint(player.blockPosition(),crossing==null?null:crossing.devilsCrossing())));
             changed=true;
         }
         if(changed)data.dirty();
     }
     private static void tickDread(ServerLevel level,WashedAshoreSavedData data,ServerPlayer player,WashedAshoreProgress progress,
                                   boolean fragmentAccess){
-        WashedAshoreInstance instance=nearestInstance(data,player,"dark_forest");
+        WashedAshoreInstance instance=nearestAvailableInstance(data,player,"dark_forest",EncounterManager.CONSUMING_DREAD);
         EncounterAnchor encounter=instance==null?null:instance.encounters().get(EncounterManager.CONSUMING_DREAD);
         if(encounter==null||encounter.status()!=EncounterStatus.DORMANT||progress.dreadQuest()==RegionalQuestStage.COMPLETE)return;
         if(progress.dreadQuest()==RegionalQuestStage.MANIFESTING){
@@ -260,11 +257,12 @@ public final class RegionalQuestManager {
         if(!(entity instanceof Pig||entity instanceof Sheep||entity instanceof Cow)
                 ||!level.getBiome(entity.blockPosition()).is(BiomeTags.IS_FOREST))return;
         WashedAshoreSavedData data=WashedAshoreSavedData.get(level);
-        EncounterAnchor encounter=data.act().encounters().get(EncounterManager.CONSUMING_DREAD);
-        if(encounter==null||encounter.status()!=EncounterStatus.DORMANT)return;
         boolean changed=false;
         for(ServerPlayer player:level.players()){
             if(player.distanceToSqr(entity)>48*48)continue;
+            WashedAshoreInstance instance=nearestAvailableInstance(data,player,"dark_forest",EncounterManager.CONSUMING_DREAD);
+            EncounterAnchor encounter=instance==null?null:instance.encounters().get(EncounterManager.CONSUMING_DREAD);
+            if(encounter==null||encounter.status()!=EncounterStatus.DORMANT)continue;
             WashedAshoreProgress progress=data.player(player.getUUID());
             boolean normalAccess=progress.stage().atLeast(WashedAshoreStage.REGIONAL_OBJECTIVES)
                     &&progress.dreadQuest()!=RegionalQuestStage.LOCKED;
@@ -287,30 +285,40 @@ public final class RegionalQuestManager {
         if(changed)data.dirty();
     }
     /**
-     * Returns the regional quest tied to a retried encounter to its available state for every player,
-     * clearing any buildup so it can be picked up again. Completed quests are left untouched. Encounters
+     * Returns players actively running the retried objective to its available state, clearing buildup
+     * so it can be picked up at any equivalent POI. Completed and unrelated players are untouched. Encounters
      * without an associated regional quest (e.g. the undertaker) simply reopen via their DORMANT state.
      */
-    public static void reopenEncounterQuest(ServerLevel level,WashedAshoreSavedData data,ResourceLocation encounterId){
+    public static void reopenEncounterQuest(ServerLevel level,WashedAshoreSavedData data,EncounterAnchor encounter){
+        ResourceLocation encounterId=encounter.encounterId();
         boolean dread=encounterId.equals(EncounterManager.CONSUMING_DREAD);
         boolean crossing=encounterId.equals(EncounterManager.THRASHER);
         if(!dread&&!crossing)return;
         // Wipe the world-level horde state so a retried crossing rises again from its first wave.
-        if(crossing)CrossingHordeManager.reset(data);
+        if(crossing)CrossingHordeManager.reset(data,encounter);
         for(ServerPlayer player:level.players()){
             WashedAshoreProgress progress=data.player(player.getUUID());
-            if(dread&&progress.dreadQuest()!=RegionalQuestStage.COMPLETE){
+            if(dread&&(progress.dreadQuest()==RegionalQuestStage.BOSS_ACTIVE
+                    ||progress.dreadQuest()==RegionalQuestStage.MANIFESTING)){
                 // Drop to LOCKED so unlock() re-announces and returns it to AVAILABLE next tick.
                 progress.setDreadQuest(RegionalQuestStage.LOCKED);
                 progress.setDreadLevel(0);progress.resetDreadManifest();progress.clearFragmentDreadInvocation();
             }
-            if(crossing&&progress.crossingQuest()!=RegionalQuestStage.COMPLETE){
+            if(crossing&&progress.crossingQuest()==RegionalQuestStage.BOSS_ACTIVE){
                 progress.setCrossingQuest(RegionalQuestStage.LOCKED);
                 progress.setCrossingInvestigation(0);progress.clearFragmentCrossingInvocation();
             }
         }
         data.dirty();
         CampaignCore.LOGGER.info("regional_quest_reopened encounter={} players={}",encounterId,level.players().size());
+    }
+    /** Clears world-only buildup so a completed encounter can serve a different player's quest. */
+    public static void prepareReplay(WashedAshoreSavedData data,WashedAshoreInstance instance,EncounterAnchor encounter){
+        if(encounter.encounterId().equals(EncounterManager.CONSUMING_DREAD))
+            instance.completedWorldObjectives().remove(DREAD_PREY_SEEDED);
+        else if(encounter.encounterId().equals(EncounterManager.THRASHER))
+            CrossingHordeManager.reset(data,encounter);
+        data.dirty();
     }
     public static boolean debugEvent(ServerLevel level,WashedAshoreSavedData data,ServerPlayer player,String event){
         WashedAshoreProgress progress=data.player(player.getUUID());
@@ -335,7 +343,8 @@ public final class RegionalQuestManager {
                 CampaignMessages.send(player,"dread_manifest");
             }
             case "spawn_dread" -> {
-                EncounterAnchor encounter=data.act().encounters().get(EncounterManager.CONSUMING_DREAD);
+                WashedAshoreInstance instance=nearestInstance(data,player,"dark_forest");
+                EncounterAnchor encounter=instance==null?null:instance.encounters().get(EncounterManager.CONSUMING_DREAD);
                 if(encounter==null)return false;
                 BlockPos spawn=surface(level,player.blockPosition().offset(8,0,0));
                 encounter.relocate(spawn,spawn.above());progress.setDreadQuest(RegionalQuestStage.BOSS_ACTIVE);
@@ -347,22 +356,33 @@ public final class RegionalQuestManager {
                 CampaignMessages.send(player,"crossing_found");
             }
             case "spawn_thrasher" -> {
-                EncounterAnchor encounter=data.act().encounters().get(EncounterManager.THRASHER);
+                WashedAshoreInstance instance=nearestInstance(data,player,"devils_crossing");
+                EncounterAnchor encounter=instance==null?null:instance.encounters().get(EncounterManager.THRASHER);
                 if(encounter==null)return false;
                 BlockPos spawn=thrasherSpawnNear(level,player);
                 encounter.relocate(spawn,spawn.above());progress.setCrossingQuest(RegionalQuestStage.BOSS_ACTIVE);
                 if(!EncounterManager.activate(level,data,encounter,player))return false;
             }
             case "spawn_crossing_horde" -> {
-                EncounterAnchor encounter=data.act().encounters().get(EncounterManager.THRASHER);
+                WashedAshoreInstance instance=nearestInstance(data,player,"devils_crossing");
+                EncounterAnchor encounter=instance==null?null:instance.encounters().get(EncounterManager.THRASHER);
                 if(encounter==null)return false;
-                CrossingHordeManager.reset(data);
+                CrossingHordeManager.reset(data,encounter);
                 progress.setCrossingQuest(RegionalQuestStage.BOSS_ACTIVE);
                 CrossingHordeManager.begin(level,data,encounter,player);
             }
-            case "form_sculk" -> {if(!SculkSurfaceManager.debugForm(level,data,player))return false;}
-            case "start_sculk" -> {if(!SculkSurfaceManager.debugStart(level,data,player))return false;}
-            case "reset_sculk" -> SculkSurfaceManager.reset(level,data);
+            case "form_sculk" -> {
+                WashedAshoreInstance instance=nearestInstance(data,player,"sculk_surface");
+                if(instance==null||!SculkSurfaceManager.debugForm(level,data,instance,player))return false;
+            }
+            case "start_sculk" -> {
+                WashedAshoreInstance instance=nearestInstance(data,player,"sculk_surface");
+                if(instance==null||!SculkSurfaceManager.debugStart(level,data,instance,player))return false;
+            }
+            case "reset_sculk" -> {
+                WashedAshoreInstance instance=nearestInstance(data,player,"sculk_surface");
+                if(instance==null)return false;SculkSurfaceManager.reset(level,data,instance);
+            }
             default -> {return false;}
         }
         data.dirty();
@@ -371,7 +391,7 @@ public final class RegionalQuestManager {
     }
     private static void tickCrossing(ServerLevel level,WashedAshoreSavedData data,ServerPlayer player,WashedAshoreProgress progress,
                                      boolean fragmentAccess){
-        WashedAshoreInstance instance=nearestInstance(data,player,"devils_crossing");
+        WashedAshoreInstance instance=nearestAvailableInstance(data,player,"devils_crossing",EncounterManager.THRASHER);
         if(instance==null||!WashedAshoreLayoutGenerator.isDevilsCrossingPlaced(instance))return;
         BlockPos crossing=instance.devilsCrossing();
         EncounterAnchor encounter=instance.encounters().get(EncounterManager.THRASHER);
@@ -401,18 +421,59 @@ public final class RegionalQuestManager {
         if(now>=profile.threshold())tryComplete(profile,ctx);
         data.dirty();
     }
+    /** Digging up the churned crossing ground counts as investigation: each block a player harvests
+     *  inside the meter radius jumps the crossing meter by the profile's {@code harvest_fill} — a
+     *  substantial chunk next to the passive look-down trickle. */
+    public static void onCrossingHarvest(net.minecraft.world.level.Level brokenLevel,BlockPos pos,ServerPlayer player){
+        if(player==null||!(brokenLevel instanceof ServerLevel level)||level!=level.getServer().overworld())return;
+        WashedAshoreSavedData data=WashedAshoreSavedData.get(level);
+        WashedAshoreProgress progress=data.player(player.getUUID());
+        if(progress.crossingQuest()!=RegionalQuestStage.CLUE_FOUND&&progress.crossingQuest()!=RegionalQuestStage.INVESTIGATING)return;
+        WashedAshoreInstance instance=nearestAvailableInstance(data,player,"devils_crossing",EncounterManager.THRASHER);
+        if(instance==null||!WashedAshoreLayoutGenerator.isDevilsCrossingPlaced(instance))return;
+        BlockPos crossing=instance.devilsCrossing();
+        EncounterAnchor encounter=instance.encounters().get(EncounterManager.THRASHER);
+        if(crossing==null||encounter==null||encounter.status()!=EncounterStatus.DORMANT)return;
+        ActivationProfile profile=profile(EncounterManager.THRASHER);
+        if(profile==null||profile.harvestFill()<=0||pos.distSqr(crossing)>square(profile.radius()))return;
+        int before=progress.crossingInvestigation();
+        int now=progress.investigateCrossing(profile.harvestFill());
+        progress.setCrossingQuest(RegionalQuestStage.INVESTIGATING);
+        BuildupContext ctx=new BuildupContext(level,data,player,progress,java.util.List.of(),encounter);
+        walkMilestones(profile,ctx,before,now);
+        if(now>=profile.threshold())tryComplete(profile,ctx);
+        data.dirty();
+    }
     private static boolean holds(ServerPlayer player,net.minecraft.world.item.Item item){
         return player.getMainHandItem().is(item)||player.getOffhandItem().is(item);
     }
     private static WashedAshoreInstance nearestInstance(WashedAshoreSavedData data,ServerPlayer player,String slot){
         WashedAshoreInstance nearest=null;double distance=Double.MAX_VALUE;
-        for(WashedAshoreInstance instance:data.instances()){BlockPos pos=instance.slot(slot);if(pos==null)continue;double d=player.blockPosition().distSqr(pos);if(d<distance){distance=d;nearest=instance;}}
+        for(WashedAshoreInstance instance:data.instances()){
+            if(!isReady(instance))continue;
+            BlockPos pos=instance.slot(slot);if(pos==null)continue;double d=player.blockPosition().distSqr(pos);if(d<distance){distance=d;nearest=instance;}
+        }
         return nearest;
+    }
+    /** Nearest interchangeable site whose physical encounter can still host this shared quest. */
+    private static WashedAshoreInstance nearestAvailableInstance(WashedAshoreSavedData data,ServerPlayer player,String slot,ResourceLocation encounterId){
+        WashedAshoreInstance nearest=null;double distance=Double.MAX_VALUE;
+        for(WashedAshoreInstance instance:data.instances()){
+            if(!isReady(instance))continue;
+            BlockPos pos=instance.slot(slot);EncounterAnchor encounter=instance.encounters().get(encounterId);
+            if(pos==null||encounter==null||encounter.status()!=EncounterStatus.DORMANT)continue;
+            double candidate=player.blockPosition().distSqr(pos);
+            if(candidate<distance){distance=candidate;nearest=instance;}
+        }
+        return nearest;
+    }
+    private static boolean isReady(WashedAshoreInstance instance){
+        return instance.contentReady();
     }
     private static BlockPos surface(ServerLevel level,BlockPos pos){
         return level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,new BlockPos(pos.getX(),0,pos.getZ())).below();
     }
-    private static String directionHint(BlockPos from,BlockPos to){
+    public static String directionHint(BlockPos from,BlockPos to){
         if(to==null)return "beyond";
         int dx=to.getX()-from.getX(),dz=to.getZ()-from.getZ();
         String northSouth=Math.abs(dz)<40?"":(dz<0?"north":"south");

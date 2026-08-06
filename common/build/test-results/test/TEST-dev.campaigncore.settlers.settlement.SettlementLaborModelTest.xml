@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-08-03T06:36:44.758Z" hostname="TOASTER" time="0.025">
+<testsuite name="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-08-06T22:35:11.712Z" hostname="TOASTER" time="0.013">
   <properties/>
-  <testcase name="perChunkCapLimitsEffectiveCount()" classname="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" time="0.014"/>
-  <testcase name="fisherRatioIsOnePerAnchorCappedAtEight()" classname="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" time="0.001"/>
-  <testcase name="smithRatioIsThreePerAnchorCappedAtFour()" classname="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" time="0.001"/>
+  <testcase name="perChunkCapLimitsEffectiveCount()" classname="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" time="0.005"/>
+  <testcase name="fisherRatioIsOnePerAnchorCappedAtEight()" classname="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" time="0.0"/>
+  <testcase name="smithRatioIsThreePerAnchorCappedAtFour()" classname="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" time="0.0"/>
   <testcase name="farmerRatioIsTwoPerAnchorCappedAtSix()" classname="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" time="0.001"/>
-  <testcase name="shrineKeeperRatioIsFourPerAnchorCappedAtTwo()" classname="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" time="0.0"/>
-  <testcase name="herderRatioIsOnePerAnchorCappedAtEight()" classname="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" time="0.002"/>
-  <testcase name="unknownProfessionHasNoDemand()" classname="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" time="0.0"/>
+  <testcase name="shrineKeeperRatioIsFourPerAnchorCappedAtTwo()" classname="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" time="0.001"/>
+  <testcase name="herderRatioIsOnePerAnchorCappedAtEight()" classname="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" time="0.001"/>
+  <testcase name="unknownProfessionHasNoDemand()" classname="dev.campaigncore.settlers.settlement.SettlementLaborModelTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

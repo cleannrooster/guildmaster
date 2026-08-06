@@ -33,7 +33,7 @@ public final class EncounterDefinitionLoader extends SimpleJsonResourceReloadLis
             "wave_entity","wave_size","wave_count","wave_delay_ticks");
     private static final Set<String> COMPLETION_FIELDS=Set.of("message","advance_to","handlers");
     private static final Set<String> ACTIVATION_FIELDS=Set.of(
-            "radius","fill_up","fill_down","threshold","nearby_prey","discovery_radius","biome_tag","milestones","on_full");
+            "radius","fill_up","fill_down","harvest_fill","threshold","nearby_prey","discovery_radius","biome_tag","milestones","on_full");
     private static final Set<String> MILESTONE_FIELDS=Set.of("mode","at","step","message","pass_level","effect","guard");
     private static final Set<String> ON_FULL_FIELDS=Set.of("message","guard","action");
 
@@ -135,6 +135,7 @@ public final class EncounterDefinitionLoader extends SimpleJsonResourceReloadLis
         int radius=GsonHelper.getAsInt(obj,"radius");
         int fillUp=GsonHelper.getAsInt(obj,"fill_up",1);
         int fillDown=GsonHelper.getAsInt(obj,"fill_down",-1);
+        int harvestFill=GsonHelper.getAsInt(obj,"harvest_fill",0);
         int threshold=GsonHelper.getAsInt(obj,"threshold",100);
         int nearbyPrey=GsonHelper.getAsInt(obj,"nearby_prey",0);
         int discoveryRadius=GsonHelper.getAsInt(obj,"discovery_radius",0);
@@ -145,7 +146,7 @@ public final class EncounterDefinitionLoader extends SimpleJsonResourceReloadLis
             milestones.add(milestone(GsonHelper.convertToJsonObject(element,"milestone")));
         ActivationCompletion onFull=obj.has("on_full")
                 ?onFull(GsonHelper.convertToJsonObject(obj.get("on_full"),"on_full")):null;
-        return new ActivationProfile(radius,fillUp,fillDown,threshold,nearbyPrey,discoveryRadius,biomeTag,milestones,onFull);
+        return new ActivationProfile(radius,fillUp,fillDown,harvestFill,threshold,nearbyPrey,discoveryRadius,biomeTag,milestones,onFull);
     }
 
     private static ActivationMilestone milestone(JsonObject json){

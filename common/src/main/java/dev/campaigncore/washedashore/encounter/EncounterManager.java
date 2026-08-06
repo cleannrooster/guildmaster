@@ -23,12 +23,15 @@ import dev.campaigncore.washedashore.message.CampaignMessages;
 import dev.campaigncore.washedashore.message.SettlementDialogueNames;
 
 public final class EncounterManager {
+    private static final long UNATTENDED_FAILURE_TICKS=10*20;
     public static final ResourceLocation UNDERTAKER=id("undertaker"),CONSUMING_DREAD=id("consuming_dread"),
             THRASHER=id("thrasher"),REGIONAL_C=id("regional_boss_c"),RAVEN=id("sculken_raven"),SCULK_SURFACE=id("sculk_surface");
     private static final Set<ResourceLocation> REGIONAL=Set.of(CONSUMING_DREAD,THRASHER,REGIONAL_C);
     private static final ResourceLocation UNDERTAKER_RELOCATED=id("undertaker_relocated_to_settlement");
     private static final ResourceLocation SETTLEMENT_UNDERTAKER_KILLED=id("settlement_undertaker_killed");
     private static final String SETTLEMENT_UNDERTAKER_TAG="campaign_core_washed_ashore_settlement_undertaker";
+    private static final String SETTLEMENT_UNDERTAKER_INSTANCE_TAG=SETTLEMENT_UNDERTAKER_TAG+"_instance=";
+    private static final String ENCOUNTER_INSTANCE_TAG="campaign_core_washed_ashore_encounter_instance=";
     private static final String SCULK_AND_SCAVENGE="sculk_and_scavenge";
     private static final Map<ResourceLocation,ResourceLocation> SCULK_AND_SCAVENGE_PREFERRED=Map.of(
             UNDERTAKER,ResourceLocation.fromNamespaceAndPath(SCULK_AND_SCAVENGE,"undertaker"),
@@ -96,6 +99,14 @@ public final class EncounterManager {
             if(def.placeholder())CampaignCore.LOGGER.info("encounter_registered_placeholder id={} boss={}",def.id(),def.bossEntity());
         }
     }
+    /** Reattaches an idle slot encounter after an operator force-places its physical POI. */
+    public static void relocateToAuthoredSlot(WashedAshoreInstance act,ResourceLocation encounterId){
+        EncounterAnchor encounter=act.encounters().get(encounterId);
+        EncounterDefinition definition=DEFINITIONS.get(encounterId).orElse(null);
+        if(encounter==null||definition==null||encounter.status()==EncounterStatus.ACTIVE)return;
+        BlockPos anchor=resolveAnchor(act,definition);
+        if(anchor!=null)encounter.relocate(anchor,anchor.above());
+    }
     private static BlockPos resolveAnchor(WashedAshoreInstance act,EncounterDefinition def){
         BlockPos base=act.slot(def.anchor());
         if(base==null)return null;
@@ -110,6 +121,7 @@ public final class EncounterManager {
     private static final Map<String,CompletionEffect> COMPLETION_EFFECTS=Map.of(
             "complete_dread_quest",(level,data,encounter,player,progress)->progress.setDreadQuest(RegionalQuestStage.COMPLETE),
             "complete_crossing_quest",(level,data,encounter,player,progress)->progress.setCrossingQuest(RegionalQuestStage.COMPLETE),
+            "unlock_second_settlement",EncounterManager::unlockSecondSettlement,
             "regional_objectives_gate",EncounterManager::regionalObjectivesGate,
             "unlock_act_two",(level,data,encounter,player,progress)->WashedAshoreManager.unlockActTwo(level,player));
     public static Set<String> completionHandlers(){return COMPLETION_EFFECTS.keySet();}
@@ -118,16 +130,40 @@ public final class EncounterManager {
                                                ServerPlayer player,WashedAshoreProgress progress){
         if(hasCompletedRequiredRegionalObjectives(progress)){
             progress.advanceTo(WashedAshoreStage.RAVEN_ROUTE_REVEALED);
-            WashedAshoreManager.triggerRavenSettlementEvent(level,data.act());
+            WashedAshoreInstance owner=data.instanceFor(encounter);
+            WashedAshoreManager.triggerRavenSettlementEvent(level,owner==null?data.act():owner);
         }
+    }
+    private static void unlockSecondSettlement(ServerLevel level,WashedAshoreSavedData data,EncounterAnchor encounter,
+                                               ServerPlayer player,WashedAshoreProgress progress){
+        WashedAshoreInstance owner=data.instanceFor(encounter);
+        WashedAshoreInstance act=owner==null?data.act():owner;
+        if(act.otherSettlement()!=null)CampaignMessages.send(player,"other_settlement",
+                dev.campaigncore.washedashore.message.SettlementDialogueNames.distant(level,act),
+                net.minecraft.network.chat.Component.translatable("direction.campaign_core.washed_ashore."+
+                        RegionalQuestManager.directionHint(player.blockPosition(),act.otherSettlement())));
     }
     public static void tick(ServerLevel level,WashedAshoreSavedData data) {
         if(level!=level.getServer().overworld()||level.getGameTime()%10!=0)return;
-        if(data.act().completedWorldObjectives().contains(UNDERTAKER_RELOCATED)
-                &&level.players().stream().anyMatch(player->player.blockPosition().distSqr(data.act().settlement())<=128*128))
-            ensureSettlementUndertaker(level,data.act());
+        for(WashedAshoreInstance instance:data.instances())
+            if(instance.completedWorldObjectives().contains(UNDERTAKER_RELOCATED)&&instance.settlement()!=null
+                    &&level.players().stream().anyMatch(player->player.blockPosition().distSqr(instance.settlement())<=128*128))
+                ensureSettlementUndertaker(level,instance);
         for(var instance:data.instances())for(EncounterAnchor encounter:instance.encounters().values()){
-            if(encounter.status()==EncounterStatus.COMPLETED)continue;
+            discardPendingRemovalBoss(level,data,encounter);
+            if(encounter.status()==EncounterStatus.COMPLETED){
+                // Completion belongs to players; COMPLETED only means this physical copy has been
+                // consumed for the current run. Reopen it when a later eligible player who has not
+                // completed the shared objective actually approaches this copy — or, for the Sculk
+                // Surface, an act finisher carrying the Fragment of Blight (prestige re-challenge).
+                ServerPlayer pending=level.players().stream().filter(player->needsEncounter(data.player(player.getUUID()),encounter)
+                                ||encounter.encounterId().equals(SCULK_SURFACE)
+                                &&dev.campaigncore.washedashore.act.SculkSurfaceManager.isPrestigeChallenger(player,data.player(player.getUUID())))
+                        .filter(player->player.blockPosition().distSqr(encounter.anchorPos())<=square(encounter.activationRadius()))
+                        .findFirst().orElse(null);
+                if(pending==null)continue;
+                reopenForPendingPlayer(level,data,instance,encounter,pending);
+            }
             if(encounter.awaitingRetry()){
                 if(level.getGameTime()>=encounter.retryAt())retryEncounter(level,data,encounter);
                 continue;
@@ -136,16 +172,46 @@ public final class EncounterManager {
             // Dread/Thrasher/Sculk Surface are event-driven; raids are handled by SettlementRaidManager.
             // None of them use the single-boss proximity spawn below.
             if(encounter.encounterId().equals(CONSUMING_DREAD)||encounter.encounterId().equals(THRASHER)
+                    ||encounter.encounterId().equals(RAVEN)
                     ||encounter.encounterId().equals(SCULK_SURFACE)
                     ||DEFINITIONS.get(encounter.encounterId()).map(EncounterDefinition::isRaid).orElse(false))continue;
             for(ServerPlayer player:level.players()){
                 WashedAshoreProgress progress=data.player(player.getUUID());
                 if(!progress.stage().atLeast(encounter.requiredStage()))continue;
+                // Equivalent layouts remain visitable, but a completed player must not start the
+                // same story objective again at another physical copy.
+                if(progress.defeatedBosses().contains(encounter.encounterId()))continue;
                 if(player.blockPosition().distSqr(encounter.anchorPos())<=square(encounter.activationRadius())){
                     activate(level,data,encounter,player);break;
                 }
             }
         }
+    }
+    static boolean needsEncounter(WashedAshoreProgress progress,EncounterAnchor encounter){
+        if(encounter.encounterId().equals(RAVEN))return false;
+        if(encounter.encounterId().equals(REGIONAL_C)
+                &&(progress.crossingQuest()!=RegionalQuestStage.COMPLETE||!progress.defeatedBosses().contains(THRASHER)))return false;
+        if(encounter.encounterId().equals(SCULK_SURFACE)&&!hasCompletedRequiredRegionalObjectives(progress))return false;
+        return progress.stage().atLeast(encounter.requiredStage())
+                &&!progress.defeatedBosses().contains(encounter.encounterId());
+    }
+    private static void reopenForPendingPlayer(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance instance,
+                                               EncounterAnchor encounter,ServerPlayer player){
+        ResourceLocation id=encounter.encounterId();
+        if(id.equals(CONSUMING_DREAD)||id.equals(THRASHER))
+            RegionalQuestManager.prepareReplay(data,instance,encounter);
+        else if(id.equals(REGIONAL_C))SettlementRaidManager.reset(level,data,instance);
+        else if(id.equals(SCULK_SURFACE))SculkSurfaceManager.reset(level,data,instance);
+        EncounterDefinition definition=DEFINITIONS.get(encounter.encounterId()).orElse(null);
+        if(definition!=null){
+            BlockPos anchor=resolveAnchor(instance,definition);
+            if(anchor!=null)encounter.relocate(anchor,anchor.above());
+        }
+        encounter.reset();
+        instance.completedWorldObjectives().remove(id);
+        data.dirty();
+        CampaignCore.LOGGER.info("encounter_reopened_for_pending_player id={} instance={} player={}",
+                encounter.encounterId(),instance.actInstanceId(),player.getUUID());
     }
     public static boolean activate(ServerLevel level,WashedAshoreSavedData data,EncounterAnchor encounter,ServerPlayer triggeringPlayer){
         return activate(level,data,encounter,triggeringPlayer,true);
@@ -176,8 +242,15 @@ public final class EncounterManager {
         boss.moveTo(spawn.x,spawn.y,spawn.z,level.random.nextFloat()*360,0);
         BlockPos p=BlockPos.containing(spawn);
         if(boss instanceof Mob mob)mob.finalizeSpawn(level,level.getCurrentDifficultyAt(p),MobSpawnType.EVENT,null);
-        boss.addTag("campaign_core_washed_ashore_encounter="+encounter.encounterId());
+        boss.addTag(encounterTag(encounter.encounterId()));
+        WashedAshoreInstance owner=data.instanceFor(encounter);
+        if(owner!=null)boss.addTag(encounterInstanceTag(owner));
         configureCandidate(level,boss,candidate,encounter,tutorialScaled);
+        // The triggering player's act prestige levels the shared fight (after candidate overrides,
+        // which set absolute stats). No-op for prestige-0 players.
+        if(triggeringPlayer!=null&&boss instanceof LivingEntity living)
+            dev.campaigncore.prestige.PrestigeManager.applyDifficulty(living,
+                    dev.campaigncore.prestige.PrestigeManager.level(data,triggeringPlayer.getUUID(),CampaignCore.WASHED_ASHORE));
         if(!level.addFreshEntity(boss)){encounter.fail(level.getGameTime());data.dirty();return false;}
         encounter.activate(boss.getUUID());data.dirty();
         CampaignCore.LOGGER.info("encounter_activated id={} boss={} uuid={} pos={} tutorial_scaled={}",
@@ -190,13 +263,18 @@ public final class EncounterManager {
         return true;
     }
     private static void validateActive(ServerLevel level,WashedAshoreSavedData data,dev.campaigncore.washedashore.act.WashedAshoreInstance instance,EncounterAnchor encounter){
+        if(failWhenUnattended(level,data,encounter))return;
         Entity boss=encounter.activeBossUuid()==null?null:level.getEntity(encounter.activeBossUuid());
-        if(boss!=null){migrateLegacyEncounterMetadata(boss);encounter.found();updateBossBar(level,encounter);if(!boss.isAlive())complete(level,data,instance,encounter);return;}
+        if(boss!=null&&encounterOwnershipMatches(boss,instance)){
+            migrateLegacyEncounterMetadata(boss);boss.addTag(encounterInstanceTag(instance));
+            encounter.found();updateBossBar(level,encounter);if(!boss.isAlive())complete(level,data,instance,encounter);return;
+        }
         if(!level.hasChunkAt(encounter.bossSpawnPos()))return;
-        Entity replacement=findReplacement(level,encounter);
+        Entity replacement=findReplacement(level,instance,encounter);
         if(replacement!=null){
             UUID previous=encounter.activeBossUuid();
             replacement.addTag(encounterTag(encounter.encounterId()));
+            replacement.addTag(encounterInstanceTag(instance));
             encounter.activate(replacement.getUUID());data.dirty();updateBossBar(level,encounter);
             CampaignCore.LOGGER.info("encounter_boss_rebound id={} previous_uuid={} replacement_uuid={} type={}",
                     encounter.encounterId(),previous,replacement.getUUID(),BuiltInRegistries.ENTITY_TYPE.getKey(replacement.getType()));
@@ -209,30 +287,67 @@ public final class EncounterManager {
             encounter.abandon(level.getGameTime());data.dirty();
         }
     }
+    /** Returns true after ten continuous seconds without a player in the encounter reset radius. */
+    public static boolean failWhenUnattended(ServerLevel level,WashedAshoreSavedData data,EncounterAnchor encounter){
+        boolean attended=level.players().stream().anyMatch(player->player.blockPosition().distSqr(encounter.anchorPos())<=square(encounter.resetRadius()));
+        if(attended){if(encounter.clearNoNearbyPlayers())data.dirty();return false;}
+        long now=level.getGameTime();
+        if(encounter.noteNoNearbyPlayers(now)){data.dirty();return false;}
+        if(!encounter.unattendedFor(now,UNATTENDED_FAILURE_TICKS))return false;
+        UUID bossUuid=encounter.activeBossUuid();
+        boolean bossLoaded=bossUuid!=null&&level.getEntity(bossUuid)!=null;
+        unloadBoss(level,encounter);
+        if(!bossLoaded)encounter.markBossForRemoval();
+        encounter.fail(now);data.dirty();
+        announceUnattendedReset(level,data,encounter);
+        CampaignCore.LOGGER.info("encounter_unattended_failed id={} reset_radius={}",encounter.encounterId(),encounter.resetRadius());
+        return true;
+    }
+    private static void announceUnattendedReset(ServerLevel level,WashedAshoreSavedData data,EncounterAnchor encounter){
+        String cooldown=encounter.retryDelayTicks()%1200==0
+                ?(encounter.retryDelayTicks()/1200)+" minutes"
+                :(encounter.retryDelayTicks()/20)+" seconds";
+        for(ServerPlayer player:level.players())if(needsEncounter(data.player(player.getUUID()),encounter))
+            CampaignMessages.send(player,"encounter_reset",cooldown);
+    }
+    private static void discardPendingRemovalBoss(ServerLevel level,WashedAshoreSavedData data,EncounterAnchor encounter){
+        UUID pending=encounter.pendingRemovalBossUuid();
+        if(pending==null)return;
+        Entity boss=level.getEntity(pending);
+        if(boss==null)return;
+        boss.discard();
+        encounter.clearPendingRemovalBoss();
+        data.dirty();
+        CampaignCore.LOGGER.info("encounter_unattended_boss_discarded id={} uuid={}",encounter.encounterId(),pending);
+    }
     public static boolean onEntityDeath(ServerLevel level,Entity entity){
         WashedAshoreSavedData data=WashedAshoreSavedData.get(level);
         if(entity.getTags().contains(SETTLEMENT_UNDERTAKER_TAG)){
-            data.act().completedWorldObjectives().add(SETTLEMENT_UNDERTAKER_KILLED);
+            WashedAshoreInstance owner=settlementUndertakerOwner(data,entity);
+            owner.completedWorldObjectives().add(SETTLEMENT_UNDERTAKER_KILLED);
             data.dirty();
-            CampaignCore.LOGGER.info("settlement_undertaker_killed uuid={} pos={}",entity.getUUID(),entity.blockPosition());
+            CampaignCore.LOGGER.info("settlement_undertaker_killed uuid={} instance={} pos={}",
+                    entity.getUUID(),owner.actInstanceId(),entity.blockPosition());
             return true;
         }
         for(var instance:data.instances())for(EncounterAnchor e:instance.encounters().values())
-            if(entity.getUUID().equals(e.activeBossUuid())||matchesEncounterIdentity(entity,e)){
+            if(entity.getUUID().equals(e.activeBossUuid())&&encounterOwnershipMatches(entity,instance)
+                    ||matchesEncounterIdentity(entity,instance,e)){
                 dropCampaignLoot(level,entity,e);return complete(level,data,instance,e);
             }
         return false;
     }
 
-    private static Entity findReplacement(ServerLevel level,EncounterAnchor encounter){
+    private static Entity findReplacement(ServerLevel level,WashedAshoreInstance instance,EncounterAnchor encounter){
         AABB area=new AABB(encounter.anchorPos()).inflate(encounter.resetRadius());
-        return level.getEntities((Entity)null,area,entity->entity.isAlive()&&matchesEncounterIdentity(entity,encounter))
+        return level.getEntities((Entity)null,area,entity->entity.isAlive()&&matchesEncounterIdentity(entity,instance,encounter))
                 .stream().min(Comparator.comparingDouble(entity->entity.blockPosition().distSqr(encounter.anchorPos()))).orElse(null);
     }
 
-    private static boolean matchesEncounterIdentity(Entity entity,EncounterAnchor encounter){
+    private static boolean matchesEncounterIdentity(Entity entity,WashedAshoreInstance instance,EncounterAnchor encounter){
         if(encounter.status()!=EncounterStatus.ACTIVE)return false;
         if(entity.blockPosition().distSqr(encounter.anchorPos())>square(encounter.resetRadius()))return false;
+        if(!encounterOwnershipMatches(entity,instance))return false;
         if(entity.getTags().contains(encounterTag(encounter.encounterId())))return true;
         EncounterCandidate candidate=encounter.selectedCandidate()==null?null:CANDIDATES.byId(encounter.selectedCandidate()).orElse(null);
         return candidate!=null&&entity.hasCustomName()
@@ -240,9 +355,18 @@ public final class EncounterManager {
     }
 
     private static String encounterTag(ResourceLocation id){return "campaign_core_washed_ashore_encounter="+id;}
+    private static String encounterInstanceTag(WashedAshoreInstance instance){return ENCOUNTER_INSTANCE_TAG+instance.actInstanceId();}
+    private static boolean encounterOwnershipMatches(Entity entity,WashedAshoreInstance instance){
+        boolean hasOwnerTag=entity.getTags().stream().anyMatch(tag->tag.startsWith(ENCOUNTER_INSTANCE_TAG));
+        return !hasOwnerTag||entity.getTags().contains(encounterInstanceTag(instance));
+    }
     public static boolean complete(ServerLevel level,WashedAshoreSavedData data,ResourceLocation id){
         EncounterAnchor encounter=data.act().encounters().get(id);if(encounter==null||encounter.status()==EncounterStatus.COMPLETED)return false;
         return complete(level,data,data.act(),encounter);
+    }
+    public static boolean complete(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance instance,ResourceLocation id){
+        EncounterAnchor encounter=instance.encounters().get(id);
+        return encounter!=null&&encounter.status()!=EncounterStatus.COMPLETED&&complete(level,data,instance,encounter);
     }
     public static boolean complete(ServerLevel level,WashedAshoreSavedData data,EncounterAnchor encounter){
         for(var instance:data.instances())if(instance.encounters().containsValue(encounter))return complete(level,data,instance,encounter);
@@ -250,12 +374,16 @@ public final class EncounterManager {
     }
     private static boolean complete(ServerLevel level,WashedAshoreSavedData data,dev.campaigncore.washedashore.act.WashedAshoreInstance instance,EncounterAnchor encounter){
         ResourceLocation id=encounter.encounterId();if(encounter.status()==EncounterStatus.COMPLETED)return false;
-        encounter.complete();EncounterBossBars.close(id);instance.completedWorldObjectives().add(id);data.act().completedWorldObjectives().add(id);
+        encounter.complete();EncounterBossBars.close(encounter);instance.completedWorldObjectives().add(id);
         EncounterCompletion completion=DEFINITIONS.get(id).map(EncounterDefinition::onComplete).orElse(EncounterCompletion.DEFAULT);
         Component name=Component.translatable("encounter.campaign_core.washed_ashore."+id.getPath());
         for(ServerPlayer player:level.players()){
             if(player.blockPosition().distSqr(encounter.anchorPos())>square(encounter.resetRadius()))continue;
-            WashedAshoreProgress progress=data.player(player.getUUID());progress.defeat(id);
+            WashedAshoreProgress progress=data.player(player.getUUID());
+            if(!needsEncounter(progress,encounter))continue;
+            // Player completion is shared across every interchangeable POI. Only first completion
+            // advances the quest and grants its campaign reward.
+            if(!progress.defeat(id))continue;
             for(WashedAshoreStage stage:completion.advanceTo())progress.advanceTo(stage);
             for(String handler:completion.handlers()){
                 CompletionEffect effect=COMPLETION_EFFECTS.get(handler);
@@ -273,11 +401,22 @@ public final class EncounterManager {
         var params=new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
                 .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN,player.position())
                 .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
-        for(var stack:table.getRandomItems(params))if(!stack.isEmpty()&&!player.getInventory().add(stack))player.drop(stack,false);
-        CampaignCore.LOGGER.info("encounter_reward_granted encounter={} player={} table={}",encounterId,player.getUUID(),tableId);
+        // Rewards follow the receiver: each recipient's own act prestige rolls their surpassing
+        // chance (difficulty follows the trigger instead — see the prestige plan doc).
+        int prestige=dev.campaigncore.prestige.PrestigeManager.level(
+                WashedAshoreSavedData.get(level),player.getUUID(),CampaignCore.WASHED_ASHORE);
+        int rolls=dev.campaigncore.prestige.PrestigeManager.surpassingRolls(prestige,level.random);
+        for(int roll=0;roll<rolls;roll++)
+            for(var stack:table.getRandomItems(params))if(!stack.isEmpty()&&!player.getInventory().add(stack))player.drop(stack,false);
+        if(rolls>1)CampaignMessages.send(player,"surpassing_reward",rolls);
+        CampaignCore.LOGGER.info("encounter_reward_granted encounter={} player={} table={} prestige={} rolls={}",
+                encounterId,player.getUUID(),tableId,prestige,rolls);
     }
     public static void completeUndertakerBySettlementArrival(ServerLevel level,WashedAshoreSavedData data,ServerPlayer player){
-        EncounterAnchor encounter=data.act().encounters().get(UNDERTAKER);
+        completeUndertakerBySettlementArrival(level,data,player,data.act());
+    }
+    public static void completeUndertakerBySettlementArrival(ServerLevel level,WashedAshoreSavedData data,ServerPlayer player,WashedAshoreInstance act){
+        EncounterAnchor encounter=act.encounters().get(UNDERTAKER);
         if(encounter==null)return;
         if(encounter.status()!=EncounterStatus.COMPLETED){
             if(encounter.activeBossUuid()!=null){
@@ -285,17 +424,17 @@ public final class EncounterManager {
                 if(active!=null)active.discard();
             }
             encounter.complete();
-            data.act().completedWorldObjectives().add(UNDERTAKER);
-            data.act().completedWorldObjectives().add(UNDERTAKER_RELOCATED);
+            act.completedWorldObjectives().add(UNDERTAKER);
+            act.completedWorldObjectives().add(UNDERTAKER_RELOCATED);
             CampaignCore.LOGGER.info("undertaker_encounter_bypassed_at_settlement player={} settlement={}",
-                    player.getUUID(),data.act().settlement());
+                    player.getUUID(),act.settlement());
         }
         WashedAshoreProgress progress=data.player(player.getUUID());
         progress.defeat(UNDERTAKER);
         progress.advanceTo(WashedAshoreStage.UNDERTAKER_DEFEATED);
-        ensureSettlementUndertaker(level,data.act());
+        ensureSettlementUndertaker(level,act);
         data.dirty();
-        CampaignMessages.send(player,"undertaker_relocated",SettlementDialogueNames.primary(level,data.act()));
+        CampaignMessages.send(player,"undertaker_relocated",SettlementDialogueNames.primary(level,act));
     }
     private static void ensureSettlementUndertaker(ServerLevel level,WashedAshoreInstance act){
         if(act.completedWorldObjectives().contains(SETTLEMENT_UNDERTAKER_KILLED))return;
@@ -317,6 +456,7 @@ public final class EncounterManager {
         Vec3 spawn=resolveClearSpawn(level,entity,center.above());
         entity.moveTo(spawn.x,spawn.y,spawn.z,0,0);
         entity.addTag(SETTLEMENT_UNDERTAKER_TAG);
+        entity.addTag(SETTLEMENT_UNDERTAKER_INSTANCE_TAG+act.actInstanceId());
         scaleAsTutorialBoss(entity);
         if(entity instanceof Mob mob){
             mob.setPersistenceRequired();
@@ -326,8 +466,18 @@ public final class EncounterManager {
         if(level.addFreshEntity(entity))
             CampaignCore.LOGGER.info("settlement_undertaker_spawned uuid={} pos={}",entity.getUUID(),spawn);
     }
+    private static WashedAshoreInstance settlementUndertakerOwner(WashedAshoreSavedData data,Entity entity){
+        for(String tag:entity.getTags())if(tag.startsWith(SETTLEMENT_UNDERTAKER_INSTANCE_TAG)){
+            try{
+                UUID id=UUID.fromString(tag.substring(SETTLEMENT_UNDERTAKER_INSTANCE_TAG.length()));
+                for(WashedAshoreInstance instance:data.instances())if(instance.actInstanceId().equals(id))return instance;
+            }catch(IllegalArgumentException ignored){}
+        }
+        // Entities from saves predating instance tags belonged to the canonical layout.
+        return data.act();
+    }
     public static boolean hasCompletedRequiredRegionalObjectives(WashedAshoreProgress progress){
-        return REGIONAL.stream().filter(progress.defeatedBosses()::contains).count()>=2;
+        return progress.defeatedBosses().containsAll(REGIONAL);
     }
     /** Lazily selects (and persists) a candidate for the encounter's slot; returns null to use the native entity. */
     private static EncounterCandidate resolveSelection(ServerLevel level,WashedAshoreSavedData data,EncounterAnchor encounter){
@@ -360,7 +510,6 @@ public final class EncounterManager {
         if(candidate!=null){
             SELECTOR.applyOverrides(boss,candidate);
             if(candidate.suppressNativeDrops())boss.addTag(SUPPRESS_DROPS_TAG);
-            if(candidate.bossBar())EncounterBossBars.open(encounter.encounterId(),encounterDisplayName(candidate,encounter.encounterId()));
         }
         boolean candidateSetsHealth=candidate!=null&&candidate.attributes().maxHealth().isPresent();
         if(tutorialScaled&&!candidateSetsHealth)scaleAsTutorialBoss(boss);
@@ -393,6 +542,8 @@ public final class EncounterManager {
         entity.addTag("campaign_core_washed_ashore_tutorial_boss");
         var health=living.getAttribute(Attributes.MAX_HEALTH);
         if(health!=null)health.setBaseValue(Math.max(1,health.getBaseValue()*.5));
+        var damage=living.getAttribute(Attributes.ATTACK_DAMAGE);
+        if(damage!=null)damage.setBaseValue(Math.max(0,damage.getBaseValue()*.5));
         living.setHealth(living.getMaxHealth());
     }
     private static void migrateLegacyEncounterMetadata(Entity entity){
@@ -403,38 +554,57 @@ public final class EncounterManager {
         if(entity.removeTag(LegacyCampaignCompatibility.TUTORIAL_BOSS_TAG))
             entity.addTag("campaign_core_washed_ashore_tutorial_boss");
     }
-    public static void reset(WashedAshoreSavedData data,ResourceLocation id){EncounterAnchor e=data.act().encounters().get(id);if(e!=null){e.reset();data.dirty();CampaignCore.LOGGER.info("encounter_reset id={}",id);}}
+    public static void reset(WashedAshoreSavedData data,ResourceLocation id){reset(data,data.act(),id);}
+    public static boolean reset(WashedAshoreSavedData data,WashedAshoreInstance instance,ResourceLocation id){
+        EncounterAnchor e=instance.encounters().get(id);if(e==null)return false;
+        e.reset();data.dirty();CampaignCore.LOGGER.info("encounter_reset id={} instance={}",id,instance.actInstanceId());return true;
+    }
 
     /** Debug: force a slot's encounter to begin now, routing to the manager that owns that slot. */
     public static boolean debugStart(ServerLevel level,WashedAshoreSavedData data,ResourceLocation slot,ServerPlayer player){
-        EncounterAnchor e=data.act().encounters().get(slot);
+        return debugStart(level,data,data.act(),slot,player);
+    }
+    public static boolean debugStart(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance instance,ResourceLocation slot,ServerPlayer player){
+        EncounterAnchor e=instance.encounters().get(slot);
         if(e==null)return false;
-        if(slot.equals(REGIONAL_C)){SettlementRaidManager.onOtherSettlementArrival(level,data,player);return true;}
-        if(slot.equals(SCULK_SURFACE))return SculkSurfaceManager.debugStart(level,data,player);
+        if(slot.equals(REGIONAL_C)){SettlementRaidManager.onOtherSettlementArrival(level,data,player,instance);return true;}
+        if(slot.equals(SCULK_SURFACE))return SculkSurfaceManager.debugStart(level,data,instance,player);
         if(slot.equals(THRASHER)){CrossingHordeManager.begin(level,data,e,player);return true;}
         return activate(level,data,e,player,slot.equals(UNDERTAKER));
     }
 
     /** Debug: unload a slot's active encounter, clear its selection and world flags, and return it to DORMANT. */
     public static boolean abortAndClear(ServerLevel level,WashedAshoreSavedData data,ResourceLocation slot){
-        EncounterAnchor e=data.act().encounters().get(slot);
+        return abortAndClear(level,data,data.act(),slot);
+    }
+    public static boolean abortAndClear(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance instance,ResourceLocation slot){
+        EncounterAnchor e=instance.encounters().get(slot);
         if(e==null)return false;
         unloadBoss(level,e);
-        if(slot.equals(REGIONAL_C))SettlementRaidManager.reset(level,data);
-        if(slot.equals(THRASHER))CrossingHordeManager.reset(data);
-        if(slot.equals(SCULK_SURFACE))SculkSurfaceManager.reset(level,data);
-        data.act().completedWorldObjectives().remove(slot);
+        if(slot.equals(REGIONAL_C))SettlementRaidManager.reset(level,data,instance);
+        if(slot.equals(THRASHER))CrossingHordeManager.reset(data,e);
+        if(slot.equals(SCULK_SURFACE))SculkSurfaceManager.reset(level,data,instance);
+        instance.completedWorldObjectives().remove(slot);
         e.reset();
         data.dirty();
-        CampaignCore.LOGGER.info("combat_encounter_aborted slot={}",slot);
+        CampaignCore.LOGGER.info("combat_encounter_aborted slot={} instance={}",slot,instance.actInstanceId());
         return true;
     }
     /** Fails an encounter: unloads its boss and starts the retry cooldown. */
     public static boolean fail(ServerLevel level,WashedAshoreSavedData data,ResourceLocation id){return endEncounter(level,data,id,false);}
     /** Abandons an encounter: unloads its boss and starts the retry cooldown. */
     public static boolean abandon(ServerLevel level,WashedAshoreSavedData data,ResourceLocation id){return endEncounter(level,data,id,true);}
+    public static boolean endEncounter(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance instance,
+                                       ResourceLocation id,boolean abandoned){
+        EncounterAnchor encounter=instance.encounters().get(id);
+        return endEncounter(level,data,encounter,id,abandoned);
+    }
     private static boolean endEncounter(ServerLevel level,WashedAshoreSavedData data,ResourceLocation id,boolean abandoned){
         EncounterAnchor encounter=data.act().encounters().get(id);
+        return endEncounter(level,data,encounter,id,abandoned);
+    }
+    private static boolean endEncounter(ServerLevel level,WashedAshoreSavedData data,EncounterAnchor encounter,
+                                        ResourceLocation id,boolean abandoned){
         if(encounter==null||encounter.status()==EncounterStatus.COMPLETED)return false;
         unloadBoss(level,encounter);
         long now=level.getGameTime();
@@ -446,7 +616,7 @@ public final class EncounterManager {
     }
     /** Discards the encounter's live boss entity if it is loaded. */
     private static void unloadBoss(ServerLevel level,EncounterAnchor encounter){
-        EncounterBossBars.close(encounter.encounterId());
+        EncounterBossBars.close(encounter);
         if(encounter.activeBossUuid()==null)return;
         Entity boss=level.getEntity(encounter.activeBossUuid());
         if(boss!=null){boss.discard();CampaignCore.LOGGER.info("encounter_boss_unloaded id={} uuid={}",encounter.encounterId(),encounter.activeBossUuid());}
@@ -455,19 +625,28 @@ public final class EncounterManager {
     private static void updateBossBar(ServerLevel level,EncounterAnchor encounter){
         EncounterCandidate candidate=encounter.selectedCandidate()==null?null:CANDIDATES.byId(encounter.selectedCandidate()).orElse(null);
         if(candidate==null||!candidate.bossBar())return;
-        EncounterBossBars.open(encounter.encounterId(),encounterDisplayName(candidate,encounter.encounterId()));
-        EncounterBossBars.updateFrom(level,encounter.encounterId(),encounter.activeBossUuid());
+        EncounterBossBars.open(encounter,encounterDisplayName(candidate,encounter.encounterId()));
+        EncounterBossBars.updateFrom(level,encounter,encounter.activeBossUuid());
     }
     /** Cooldown elapsed: return the encounter to its available (DORMANT) state and re-offer its quest. */
     private static void retryEncounter(ServerLevel level,WashedAshoreSavedData data,EncounterAnchor encounter){
         unloadBoss(level,encounter);
         // Restore the encounter to its authored anchor (a quest may have relocated it) before reopening.
         EncounterDefinition def=DEFINITIONS.get(encounter.encounterId()).orElse(null);
-        if(def!=null){BlockPos anchor=resolveAnchor(data.act(),def);if(anchor!=null)encounter.relocate(anchor,anchor.above());}
+        WashedAshoreInstance owner=data.instanceFor(encounter);
+        if(owner!=null){
+            if(encounter.encounterId().equals(REGIONAL_C))SettlementRaidManager.reset(level,data,owner);
+            else if(encounter.encounterId().equals(SCULK_SURFACE))SculkSurfaceManager.reset(level,data,owner);
+        }
+        if(def!=null&&owner!=null){
+            BlockPos anchor=resolveAnchor(owner,def);
+            if(anchor!=null)encounter.relocate(anchor,anchor.above());
+        }
         encounter.reset();
-        RegionalQuestManager.reopenEncounterQuest(level,data,encounter.encounterId());
+        RegionalQuestManager.reopenEncounterQuest(level,data,encounter);
         data.dirty();
-        CampaignCore.LOGGER.info("encounter_retry_available id={} anchor={}",encounter.encounterId(),encounter.anchorPos());
+        CampaignCore.LOGGER.info("encounter_retry_available id={} instance={} anchor={}",encounter.encounterId(),
+                owner==null?"unknown":owner.actInstanceId(),encounter.anchorPos());
     }
     /**
      * Resolves a spawn near {@code preferred} where the boss's whole body fits with room to move, so

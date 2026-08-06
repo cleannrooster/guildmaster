@@ -3,5 +3,6 @@
   "objective": "kill_leader", "spawn": "approaching_hub",
   "entities": ["minecraft:ravager"], "count": 1,
   "minimum_distance": 64, "maximum_distance": 96,
+  "reward_loot_table": "campaign_core:washed_ashore/incidents/tier_2",
   "special": { "attributes": { "max_health": 140, "damage_multiplier": 1.15 } }
 }

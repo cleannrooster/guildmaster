@@ -69,6 +69,11 @@ public final class CampaignSavedData extends SavedData {
         progress.setCurrentStage(stageId(stage));setDirty();
     }
 
+    /** Drops the player's progress in every campaign (prestige wipe restarts the whole character). */
+    public void clearPlayer(UUID player){
+        if(players.remove(player)!=null)setDirty();
+    }
+
     private static PlayerCampaignProgress migratePlayer(WashedAshoreProgress old){
         PlayerCampaignProgress result=new PlayerCampaignProgress();result.setCurrentStage(stageId(old.stage()));
         old.defeatedBosses().forEach(id->result.defeatedEncounters().add(remap("encounter",id)));

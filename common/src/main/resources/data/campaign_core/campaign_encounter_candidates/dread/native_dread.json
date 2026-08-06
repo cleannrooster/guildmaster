@@ -7,5 +7,5 @@
   "variant": "dread_made_flesh",
   "display_name": "encounter.campaign_core.washed_ashore.variant.dread_made_flesh",
   "boss_bar": true,
-  "attributes": { "max_health": 160 }
+  "attributes": { "max_health": 130, "damage_multiplier": 0.5 }
 }

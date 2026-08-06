@@ -3,6 +3,7 @@
   "objective": "kill_group", "spawn": "approaching_hub",
   "entities": ["minecraft:wolf"], "count": 6,
   "minimum_distance": 48, "maximum_distance": 72,
+  "reward_loot_table": "campaign_core:washed_ashore/incidents/tier_1",
   "special": {
     "protected_entity": "minecraft:sheep", "protected_count": 6,
     "minimum_survivors": 1, "use_nearby_protected": true

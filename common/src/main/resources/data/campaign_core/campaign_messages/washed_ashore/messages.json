@@ -3,6 +3,10 @@
     "channel": "story",
     "translation": "message.campaign_core.washed_ashore.washed_ashore"
   },
+  "void_waiting": {
+    "channel": "story",
+    "translation": "message.campaign_core.washed_ashore.void_waiting"
+  },
   "inland": {
     "channel": "objective",
     "translation": "objective.campaign_core.washed_ashore.inland"
@@ -26,6 +30,10 @@
   "encounter_complete": {
     "channel": "completion",
     "translation": "message.campaign_core.washed_ashore.encounter_complete"
+  },
+  "encounter_reset": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.encounter_reset"
   },
   "regional": {
     "channel": "objective",
@@ -119,6 +127,10 @@
     "channel": "story",
     "translation": "message.campaign_core.washed_ashore.sculk_surface_found"
   },
+  "sculk_blight_spreads": {
+    "channel": "ambient",
+    "translation": "message.campaign_core.washed_ashore.sculk_blight_spreads"
+  },
   "sculk_raven_rises": {
     "channel": "warning",
     "translation": "message.campaign_core.washed_ashore.sculk_raven_rises"
@@ -138,6 +150,10 @@
   "world_preparation_failed": {
     "channel": "warning",
     "translation": "message.campaign_core.washed_ashore.world_preparation_failed"
+  },
+  "world_preparing": {
+    "channel": "chat",
+    "translation": "message.campaign_core.washed_ashore.world_preparing"
   },
   "world_preparation_degraded": {
     "channel": "warning",
@@ -182,5 +198,25 @@
   "no_available_quests": {
     "channel": "quest",
     "translation": "message.campaign_core.washed_ashore.no_available_quests"
+  },
+  "blight_challenge": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.blight_challenge"
+  },
+  "prestige_earned": {
+    "channel": "completion",
+    "translation": "message.campaign_core.washed_ashore.prestige_earned"
+  },
+  "prestige_wipe": {
+    "channel": "story",
+    "translation": "message.campaign_core.washed_ashore.prestige_wipe"
+  },
+  "blight_fizzled": {
+    "channel": "warning",
+    "translation": "message.campaign_core.washed_ashore.blight_fizzled"
+  },
+  "surpassing_reward": {
+    "channel": "completion",
+    "translation": "message.campaign_core.washed_ashore.surpassing_reward"
   }
 }

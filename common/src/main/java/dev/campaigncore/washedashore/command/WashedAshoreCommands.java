@@ -30,6 +30,11 @@ public final class WashedAshoreCommands {
                         .then(Commands.literal("inspect").executes(WashedAshoreCommands::inspect))
                         .then(Commands.literal("generate").executes(WashedAshoreCommands::generate))
                         .then(Commands.literal("reset").executes(WashedAshoreCommands::resetAct))
+                        .then(Commands.literal("place")
+                                .then(Commands.argument("poi",StringArgumentType.word())
+                                        .suggests((c,b)->SharedSuggestionProvider.suggest(WashedAshoreLayoutGenerator.placeablePois(),b))
+                                        .then(Commands.argument("pos",BlockPosArgument.blockPos())
+                                                .executes(WashedAshoreCommands::placePoi))))
                         .then(Commands.literal("reinstance")
                                 .then(Commands.argument("pos",BlockPosArgument.blockPos())
                                         .then(Commands.argument("bypass",BoolArgumentType.bool())
@@ -94,6 +99,16 @@ public final class WashedAshoreCommands {
                                                 .then(Commands.argument("event",StringArgumentType.word())
                                                         .suggests((c,b)->SharedSuggestionProvider.suggest(new String[]{"howl","darkness","silence","missing","manifest","spawn_dread","discover_crossing","spawn_thrasher","spawn_crossing_horde","form_sculk","start_sculk","reset_sculk"},b))
                                                         .executes(WashedAshoreCommands::triggerQuestEvent))))))
+                        .then(Commands.literal("prestige")
+                                .then(Commands.literal("get").then(Commands.argument("player",EntityArgument.player()).executes(WashedAshoreCommands::prestigeGet)))
+                                .then(Commands.literal("set").then(Commands.argument("player",EntityArgument.player())
+                                        .then(Commands.argument("act",ResourceLocationArgument.id())
+                                                .suggests((c,b)->SharedSuggestionProvider.suggest(new String[]{dev.campaigncore.CampaignCore.WASHED_ASHORE.toString()},b))
+                                                .then(Commands.argument("level",IntegerArgumentType.integer(0,100)).executes(WashedAshoreCommands::prestigeSet)))))
+                                .then(Commands.literal("queue-wipe").then(Commands.argument("player",EntityArgument.player())
+                                        .then(Commands.argument("act",ResourceLocationArgument.id())
+                                                .suggests((c,b)->SharedSuggestionProvider.suggest(new String[]{dev.campaigncore.CampaignCore.WASHED_ASHORE.toString()},b))
+                                                .executes(WashedAshoreCommands::prestigeQueueWipe)))))
                         .then(Commands.literal("recovery")
                                 .then(Commands.literal("inspect").then(Commands.argument("player",EntityArgument.player()).executes(WashedAshoreCommands::inspectRecovery)))
                                 .then(Commands.literal("start").then(Commands.argument("player",EntityArgument.player())
@@ -107,16 +122,29 @@ public final class WashedAshoreCommands {
                 ));
     }
     private static int inspect(CommandContext<CommandSourceStack> c){
-        var source=c.getSource();var data=WashedAshoreSavedData.get(source.getLevel());var act=data.act();
-        source.sendSuccess(()->Component.literal("Washed Ashore Act 1: "+act.generationStatus()+" layout v"+act.layoutVersion()+" instance "+act.actInstanceId()),false);
+        var source=c.getSource();var data=WashedAshoreSavedData.get(source.getLevel());
+        var nearest=nearestLayout(data,BlockPos.containing(source.getPosition()),"settlement");
+        var act=nearest==null?data.act():nearest;
+        source.sendSuccess(()->Component.literal("Nearest Washed Ashore layout: "+act.generationStatus()+" layout v"+act.layoutVersion()+" instance "+act.actInstanceId()),false);
         source.sendSuccess(()->Component.literal("beach="+fmt(act.beachSpawn())+" guide="+fmt(act.guideLandmark())+" undertaker="+fmt(act.undertakerGraveyard())),false);
         source.sendSuccess(()->Component.literal("settlement="+fmt(act.settlement())+" raven="+fmt(act.ravenArena())),false);
         source.sendSuccess(()->Component.literal("dark_forest="+fmt(act.darkForest())+" devils_crossing="+fmt(act.devilsCrossing())+" other_settlement="+fmt(act.otherSettlement())),false);
-        source.sendSuccess(()->Component.literal("sculk_surface="+fmt(act.sculkSurface())+" formed="+SculkSurfaceManager.isFormed(data)
+        source.sendSuccess(()->Component.literal("sculk_surface="+fmt(act.sculkSurface())+" formed="+SculkSurfaceManager.isFormed(act)
                 +" mob_deaths="+act.sculkMobDeaths()+" start_tick="+act.sculkEncounterStartTick()+" waves="+act.sculkWavesSpawned()),false);
         long gameTime=source.getLevel().getGameTime();
         for(EncounterAnchor e:act.encounters().values())source.sendSuccess(()->Component.literal(e.encounterId()+" "+e.status()+" boss="+e.activeBossUuid()
                 +(e.awaitingRetry()?" retry_in="+Math.max(0,(e.retryAt()-gameTime)/20)+"s":"")),false);
+        int layoutIndex=0;
+        for(WashedAshoreInstance instance:data.instances()){
+            int index=layoutIndex++;
+            if(instance==act)continue;
+            source.sendSuccess(()->Component.literal("additional["+index+"] instance="+instance.actInstanceId()
+                    +" status="+instance.generationStatus()+" beach="+fmt(instance.beachSpawn())
+                    +" settlement="+fmt(instance.settlement())),false);
+            source.sendSuccess(()->Component.literal("additional["+index+"] dark_forest="+fmt(instance.darkForest())
+                    +" devils_crossing="+fmt(instance.devilsCrossing())+" other_settlement="+fmt(instance.otherSettlement())
+                    +" sculk_surface="+fmt(instance.sculkSurface())+" encounters="+instance.encounters().size()),false);
+        }
         ServerPlayer player=source.getPlayer();if(player!=null){var progress=data.player(player.getUUID());
             source.sendSuccess(()->Component.literal("player stage="+progress.stage()+" dread="+progress.dreadQuest()+"("+progress.dreadLevel()+"%) crossing="+progress.crossingQuest()+"("+progress.crossingInvestigation()+"%)"),false);}
         return Command.SINGLE_SUCCESS;
@@ -129,6 +157,21 @@ public final class WashedAshoreCommands {
     private static int resetAct(CommandContext<CommandSourceStack> c){
         var data=WashedAshoreSavedData.get(c.getSource().getLevel());data.act().reset();data.clearAdditionalInstances();data.clearHubIncidents();data.clearPlayers();
         c.getSource().sendSuccess(()->Component.literal("Act state reset. Generation will start when a player is present."),true);return 1;
+    }
+    private static int placePoi(CommandContext<CommandSourceStack> c) throws com.mojang.brigadier.exceptions.CommandSyntaxException{
+        String poi=StringArgumentType.getString(c,"poi").toLowerCase(Locale.ROOT);
+        BlockPos requested=BlockPosArgument.getLoadedBlockPos(c,"pos");
+        WashedAshoreSavedData data=WashedAshoreSavedData.get(c.getSource().getLevel());
+        WashedAshoreInstance instance=nearestLayout(data,requested,poi);
+        if(instance==null)instance=data.act();
+        var result=WashedAshoreLayoutGenerator.forcePlacePoi(c.getSource().getLevel(),data,instance,poi,requested);
+        if(!result.success()){
+            c.getSource().sendFailure(Component.literal("Could not force-place "+poi+": "+result.message()));
+            return 0;
+        }
+        c.getSource().sendSuccess(()->Component.literal("Force-placed "+poi+" at "+result.position().toShortString()
+                +". Inhabited-location and overlap safeguards were bypassed; overwritten blocks are not recoverable."),true);
+        return Command.SINGLE_SUCCESS;
     }
     private static int reinstance(CommandContext<CommandSourceStack> c){
         BlockPos requested=BlockPosArgument.getBlockPos(c,"pos");
@@ -145,27 +188,36 @@ public final class WashedAshoreCommands {
         }catch(Exception ex){c.getSource().sendFailure(Component.literal("Unknown Act 1 stage or player."));return 0;}
     }
     private static int teleport(CommandContext<CommandSourceStack> c,String target){
-        ServerPlayer player=c.getSource().getPlayer();if(player==null)return 0;WashedAshoreInstance a=WashedAshoreSavedData.get(c.getSource().getLevel()).act();
-        BlockPos p=switch(target){case"beach"->a.beachSpawn();case"guide"->a.guideLandmark();case"undertaker"->a.undertakerGraveyard();
-            case"settlement"->a.settlement();case"dread"->a.darkForest();case"crossing"->a.devilsCrossing();
-            case"other_settlement"->a.otherSettlement();case"sculk"->a.sculkSurface();default->a.ravenArena();};
+        ServerPlayer player=c.getSource().getPlayer();if(player==null)return 0;
+        WashedAshoreInstance a=nearestLayout(WashedAshoreSavedData.get(c.getSource().getLevel()),sourcePos(c),target);
+        BlockPos p=a==null?null:landmarkPos(a,target);
         if(p==null){c.getSource().sendFailure(Component.literal("That landmark has not been generated."));return 0;}
         player.teleportTo(c.getSource().getLevel(),p.getX()+.5,p.getY()+2,p.getZ()+.5,player.getYRot(),player.getXRot());return 1;
     }
     private static int activate(CommandContext<CommandSourceStack> c){
-        ResourceLocation id=ResourceLocationArgument.getId(c,"id");var data=WashedAshoreSavedData.get(c.getSource().getLevel());EncounterAnchor e=data.act().encounters().get(id);
+        ResourceLocation id=ResourceLocationArgument.getId(c,"id");var data=WashedAshoreSavedData.get(c.getSource().getLevel());
+        WashedAshoreInstance instance=nearestEncounterInstance(data,sourcePos(c),id);EncounterAnchor e=instance==null?null:instance.encounters().get(id);
         if(e==null){c.getSource().sendFailure(Component.literal("Unknown encounter "+id));return 0;}
         return EncounterManager.activate(c.getSource().getLevel(),data,e,c.getSource().getPlayer())?1:0;
     }
-    private static int resetEncounter(CommandContext<CommandSourceStack> c){ResourceLocation id=ResourceLocationArgument.getId(c,"id");EncounterManager.reset(WashedAshoreSavedData.get(c.getSource().getLevel()),id);return 1;}
+    private static int resetEncounter(CommandContext<CommandSourceStack> c){
+        ResourceLocation id=ResourceLocationArgument.getId(c,"id");var data=WashedAshoreSavedData.get(c.getSource().getLevel());
+        WashedAshoreInstance instance=nearestEncounterInstance(data,sourcePos(c),id);
+        return instance!=null&&EncounterManager.reset(data,instance,id)?1:0;
+    }
     private static int endEncounter(CommandContext<CommandSourceStack> c,boolean abandoned){
         ResourceLocation id=ResourceLocationArgument.getId(c,"id");var level=c.getSource().getLevel();var data=WashedAshoreSavedData.get(level);
-        boolean ok=abandoned?EncounterManager.abandon(level,data,id):EncounterManager.fail(level,data,id);
+        WashedAshoreInstance instance=nearestEncounterInstance(data,sourcePos(c),id);
+        boolean ok=instance!=null&&EncounterManager.endEncounter(level,data,instance,id,abandoned);
         if(!ok){c.getSource().sendFailure(Component.literal("Unknown or already-completed encounter "+id));return 0;}
-        EncounterAnchor e=data.act().encounters().get(id);long ticks=e==null?0:Math.max(0,e.retryAt()-level.getGameTime());
+        EncounterAnchor e=instance.encounters().get(id);long ticks=e==null?0:Math.max(0,e.retryAt()-level.getGameTime());
         c.getSource().sendSuccess(()->Component.literal((abandoned?"Abandoned ":"Failed ")+id+"; retry in ~"+(ticks/20)+"s"),true);return 1;
     }
-    private static int complete(CommandContext<CommandSourceStack> c){ResourceLocation id=ResourceLocationArgument.getId(c,"id");return EncounterManager.complete(c.getSource().getLevel(),WashedAshoreSavedData.get(c.getSource().getLevel()),id)?1:0;}
+    private static int complete(CommandContext<CommandSourceStack> c){
+        ResourceLocation id=ResourceLocationArgument.getId(c,"id");var data=WashedAshoreSavedData.get(c.getSource().getLevel());
+        WashedAshoreInstance instance=nearestEncounterInstance(data,sourcePos(c),id);
+        return instance!=null&&EncounterManager.complete(c.getSource().getLevel(),data,instance,id)?1:0;
+    }
     private static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestHubs(
             CommandContext<CommandSourceStack> c,com.mojang.brigadier.suggestion.SuggestionsBuilder b){
         return SharedSuggestionProvider.suggestResource(HubIncidentRegistry.hubs().keySet(),b);
@@ -274,6 +326,36 @@ public final class WashedAshoreCommands {
             c.getSource().sendSuccess(()->Component.literal("Reset first awakening for "+player.getName().getString()),true);return 1;
         }catch(Exception ex){return 0;}
     }
+    // --- prestige ---------------------------------------------------------------------------------
+    private static int prestigeGet(CommandContext<CommandSourceStack> c){
+        try{ServerPlayer player=EntityArgument.getPlayer(c,"player");
+            var ledger=WashedAshoreSavedData.get(c.getSource().getLevel()).player(player.getUUID()).prestige();
+            String levels=ledger.levelsView().isEmpty()?"none"
+                    :ledger.levelsView().entrySet().stream().map(e->e.getKey()+"="+e.getValue())
+                            .sorted().reduce("",(a,b)->a+(a.isEmpty()?"":", ")+b);
+            c.getSource().sendSuccess(()->Component.literal("Prestige for "+player.getName().getString()
+                    +": "+levels+(ledger.pendingWipeAct()==null?"":" (wipe pending: "+ledger.pendingWipeAct()+")")),false);
+            return 1;
+        }catch(Exception ex){return 0;}
+    }
+    private static int prestigeSet(CommandContext<CommandSourceStack> c){
+        try{ServerPlayer player=EntityArgument.getPlayer(c,"player");
+            ResourceLocation act=ResourceLocationArgument.getId(c,"act");
+            int level=IntegerArgumentType.getInteger(c,"level");
+            WashedAshoreSavedData data=WashedAshoreSavedData.get(c.getSource().getLevel());
+            data.player(player.getUUID()).prestige().setLevel(act,level);data.dirty();
+            c.getSource().sendSuccess(()->Component.literal("Set "+player.getName().getString()+" prestige "+act+"="+level),true);return 1;
+        }catch(Exception ex){return 0;}
+    }
+    private static int prestigeQueueWipe(CommandContext<CommandSourceStack> c){
+        try{ServerPlayer player=EntityArgument.getPlayer(c,"player");
+            ResourceLocation act=ResourceLocationArgument.getId(c,"act");
+            WashedAshoreSavedData data=WashedAshoreSavedData.get(c.getSource().getLevel());
+            data.player(player.getUUID()).prestige().queueWipe(act);data.dirty();
+            dev.campaigncore.prestige.PrestigeManager.checkPendingWipe(player,data);
+            c.getSource().sendSuccess(()->Component.literal("Prestige wipe applied to "+player.getName().getString()+" for "+act),true);return 1;
+        }catch(Exception ex){return 0;}
+    }
     // --- combat_encounter: data-driven encounter pool ---------------------------------------------
     /** A fresh {@code slot} argument (Brigadier builders are single-use) suggesting the shipped encounter ids. */
     private static RequiredArgumentBuilder<CommandSourceStack,ResourceLocation> slotArg(){
@@ -305,7 +387,8 @@ public final class WashedAshoreCommands {
         ResourceLocation slot=ResourceLocationArgument.getId(c,"slot");
         ResourceLocation candidateId=ResourceLocationArgument.getId(c,"candidate");
         var data=WashedAshoreSavedData.get(c.getSource().getLevel());
-        EncounterAnchor e=data.act().encounters().get(slot);
+        WashedAshoreInstance instance=nearestEncounterInstance(data,sourcePos(c),slot);
+        EncounterAnchor e=instance==null?null:instance.encounters().get(slot);
         if(e==null){c.getSource().sendFailure(Component.literal("Unknown encounter slot "+slot));return 0;}
         var candidate=EncounterManager.candidates().byId(candidateId);
         if(candidate.isEmpty()||!candidate.get().slot().equals(slot)){
@@ -316,28 +399,50 @@ public final class WashedAshoreCommands {
     private static int combatStart(CommandContext<CommandSourceStack> c){
         ResourceLocation slot=ResourceLocationArgument.getId(c,"slot");
         var level=c.getSource().getLevel();var data=WashedAshoreSavedData.get(level);
-        if(!EncounterManager.debugStart(level,data,slot,c.getSource().getPlayer())){
+        WashedAshoreInstance instance=nearestEncounterInstance(data,sourcePos(c),slot);
+        if(instance==null||!EncounterManager.debugStart(level,data,instance,slot,c.getSource().getPlayer())){
             c.getSource().sendFailure(Component.literal("Could not start "+slot+"; check the layout is generated and the slot exists."));return 0;}
         c.getSource().sendSuccess(()->Component.literal("Started encounter "+slot),true);return 1;
     }
     private static int combatStatus(CommandContext<CommandSourceStack> c){
         var data=WashedAshoreSavedData.get(c.getSource().getLevel());
         for(ResourceLocation slot:EncounterManager.slots()){
-            EncounterAnchor e=data.act().encounters().get(slot);
+            WashedAshoreInstance instance=nearestEncounterInstance(data,sourcePos(c),slot);
+            EncounterAnchor e=instance==null?null:instance.encounters().get(slot);
             int pool=EncounterManager.candidates().forSlot(slot).size();
             String state=e==null?"unmaterialized":e.status().name()
                     +" selected="+(e.selectedCandidate()==null?"native":e.selectedCandidate())
-                    +" boss="+e.activeBossUuid()+(EncounterBossBars.isOpen(slot)?" bar":"");
-            c.getSource().sendSuccess(()->Component.literal(slot+" pool="+pool+" "+state),false);
+                    +" boss="+e.activeBossUuid()+(EncounterBossBars.isOpen(e)?" bar":"");
+            String owner=instance==null?"":" instance="+instance.actInstanceId();
+            c.getSource().sendSuccess(()->Component.literal(slot+owner+" pool="+pool+" "+state),false);
         }
         return 1;
     }
     private static int combatAbort(CommandContext<CommandSourceStack> c){
         ResourceLocation slot=ResourceLocationArgument.getId(c,"slot");
         var level=c.getSource().getLevel();var data=WashedAshoreSavedData.get(level);
-        if(!EncounterManager.abortAndClear(level,data,slot)){
+        WashedAshoreInstance instance=nearestEncounterInstance(data,sourcePos(c),slot);
+        if(instance==null||!EncounterManager.abortAndClear(level,data,instance,slot)){
             c.getSource().sendFailure(Component.literal("Unknown encounter slot "+slot));return 0;}
         c.getSource().sendSuccess(()->Component.literal("Aborted and cleared "+slot),true);return 1;
+    }
+
+    private static BlockPos sourcePos(CommandContext<CommandSourceStack> c){return BlockPos.containing(c.getSource().getPosition());}
+    private static WashedAshoreInstance nearestEncounterInstance(WashedAshoreSavedData data,BlockPos origin,ResourceLocation id){
+        return data.instances().stream().filter(WashedAshoreInstance::contentReady)
+                .filter(instance->instance.encounters().containsKey(id))
+                .min(java.util.Comparator.comparingDouble(instance->instance.encounters().get(id).anchorPos().distSqr(origin))).orElse(null);
+    }
+    private static WashedAshoreInstance nearestLayout(WashedAshoreSavedData data,BlockPos origin,String target){
+        return data.instances().stream().filter(WashedAshoreInstance::contentReady)
+                .filter(instance->landmarkPos(instance,target)!=null)
+                .min(java.util.Comparator.comparingDouble(instance->landmarkPos(instance,target).distSqr(origin))).orElse(null);
+    }
+    private static BlockPos landmarkPos(WashedAshoreInstance instance,String target){
+        return switch(target){case"beach"->instance.beachSpawn();case"guide"->instance.guideLandmark();case"undertaker","graveyard"->instance.undertakerGraveyard();
+            case"settlement"->instance.settlement();case"dread","dark_forest"->instance.darkForest();case"crossing","devils_crossing"->instance.devilsCrossing();
+            case"other_settlement"->instance.otherSettlement();case"sculk","sculk_surface"->instance.sculkSurface();
+            case"raven"->instance.ravenArena();default->null;};
     }
 
     private static String fmt(BlockPos p){return p==null?"missing":p.toShortString();}

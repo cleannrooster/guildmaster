@@ -2,5 +2,6 @@
   "tier": 1, "weight": 12, "duration_ticks": 12000,
   "objective": "kill_group", "spawn": "around_hub",
   "entities": ["minecraft:slime", "minecraft:slime", "minecraft:magma_cube"],
-  "count": 9, "minimum_distance": 32, "maximum_distance": 64
+  "count": 9, "minimum_distance": 32, "maximum_distance": 64,
+  "reward_loot_table": "campaign_core:washed_ashore/incidents/tier_1"
 }

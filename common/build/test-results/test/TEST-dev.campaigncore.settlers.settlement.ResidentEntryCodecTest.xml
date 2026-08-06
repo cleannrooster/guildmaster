@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.campaigncore.settlers.settlement.ResidentEntryCodecTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-08-03T06:36:44.752Z" hostname="TOASTER" time="0.006">
+<testsuite name="dev.campaigncore.settlers.settlement.ResidentEntryCodecTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-08-06T22:35:11.706Z" hostname="TOASTER" time="0.005">
   <properties/>
   <testcase name="oldDataWithoutWorkTypeLoads()" classname="dev.campaigncore.settlers.settlement.ResidentEntryCodecTest" time="0.0"/>
   <testcase name="workTypeRoundTrips()" classname="dev.campaigncore.settlers.settlement.ResidentEntryCodecTest" time="0.001"/>
   <testcase name="pendingJobOfferRoundTrips()" classname="dev.campaigncore.settlers.settlement.ResidentEntryCodecTest" time="0.0"/>
-  <testcase name="clearWorkDropsBoth()" classname="dev.campaigncore.settlers.settlement.ResidentEntryCodecTest" time="0.001"/>
+  <testcase name="clearWorkDropsBoth()" classname="dev.campaigncore.settlers.settlement.ResidentEntryCodecTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

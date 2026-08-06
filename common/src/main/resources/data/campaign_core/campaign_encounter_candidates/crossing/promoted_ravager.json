@@ -7,5 +7,5 @@
   "display_name": "encounter.campaign_core.washed_ashore.variant.underroad_beast",
   "boss_bar": true,
   "suppress_native_drops": true,
-  "attributes": { "max_health": 200, "damage_multiplier": 1.0, "knockback_resistance": 0.8, "scale": 1.2 }
+  "attributes": { "max_health": 200, "damage_multiplier": 1.0, "knockback_resistance": 0.8, "scale": 1.6 }
 }

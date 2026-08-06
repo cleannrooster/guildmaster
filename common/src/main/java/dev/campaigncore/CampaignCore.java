@@ -9,6 +9,7 @@ import dev.campaigncore.data.EncounterDefinitionLoader;
 import dev.campaigncore.data.LocationTriggerLoader;
 import dev.campaigncore.data.WashedAshoreConfigLoader;
 import dev.campaigncore.washedashore.act.WashedAshoreManager;
+import dev.campaigncore.washedashore.act.WashedAshoreLayoutGenerator;
 import dev.campaigncore.washedashore.act.RegionalQuestManager;
 import dev.campaigncore.washedashore.command.WashedAshoreCommands;
 import dev.campaigncore.washedashore.encounter.EncounterManager;
@@ -74,10 +75,12 @@ public final class CampaignCore {
                 id("campaign_config"));
         CampaignNetwork.registerServer();
         CampaignItems.register();
+        dev.campaigncore.prestige.PrestigeChallenges.register(WASHED_ASHORE,()->CampaignItems.BLIGHT_FRAGMENT.get());
         // Retry once the physical server and its game directory are fully available. This also
         // guarantees the default file is materialized on dedicated servers.
         LifecycleEvent.SERVER_LEVEL_LOAD.register(level -> CampaignServerConfig.load());
         LifecycleEvent.SERVER_LEVEL_LOAD.register(WashedAshoreManager::onLevelLoad);
+        LifecycleEvent.SERVER_LEVEL_UNLOAD.register(WashedAshoreLayoutGenerator::onLevelUnload);
         LifecycleEvent.SERVER_LEVEL_LOAD.register(CampaignCore::migrateLegacyWorld);
         TickEvent.SERVER_LEVEL_POST.register(WashedAshoreManager::tick);
         TickEvent.SERVER_LEVEL_POST.register(ProneRecoveryManager::tick);
@@ -93,6 +96,10 @@ public final class CampaignCore {
         EntityEvent.LIVING_HURT.register((entity,source,amount)->
                 entity instanceof net.minecraft.server.level.ServerPlayer player&&ProneRecoveryManager.protectedFromDamage(player)
                         ?EventResult.interruptFalse():EventResult.pass());
+        BlockEvent.BREAK.register((level,pos,state,player,xp)->{
+            RegionalQuestManager.onCrossingHarvest(level,pos,player);
+            return EventResult.pass();
+        });
         EntityEvent.LIVING_DEATH.register((entity,source)->{
             if(entity.level() instanceof ServerLevel level){
                 RegionalQuestManager.onLivestockDeath(level,entity,source);

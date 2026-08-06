@@ -9,11 +9,14 @@ import java.util.Optional;
  * rises by {@code fillUp} or falls by {@code fillDown} each tick depending on the quest's fill
  * condition, firing {@code milestones} as it climbs and running {@code onFull} at the top. The
  * quest-specific fill/effect/action implementations are named Java functions (see RegionalQuestManager).
+ * {@code harvestFill} is an optional event-driven boost: how much the meter jumps each time a player
+ * harvests a block inside {@code radius} (0 = harvesting does nothing for this quest).
  */
 public record ActivationProfile(
         int radius,
         int fillUp,
         int fillDown,
+        int harvestFill,
         int threshold,
         int nearbyPrey,
         int discoveryRadius,

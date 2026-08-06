@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.campaigncore.settlers.settlement.StructureAssignmentTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-08-03T06:36:44.794Z" hostname="TOASTER" time="0.005">
+<testsuite name="dev.campaigncore.settlers.settlement.StructureAssignmentTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-08-06T22:35:11.732Z" hostname="TOASTER" time="0.002">
   <properties/>
   <testcase name="scanBoundsInflatePhysicalBoundsByTwoInEveryDirection()" classname="dev.campaigncore.settlers.settlement.StructureAssignmentTest" time="0.001"/>
   <testcase name="overlappingStructureScansCannotDuplicateAnchors()" classname="dev.campaigncore.settlers.settlement.StructureAssignmentTest" time="0.001"/>

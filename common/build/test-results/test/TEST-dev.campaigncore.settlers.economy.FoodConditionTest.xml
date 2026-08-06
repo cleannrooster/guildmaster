@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.campaigncore.settlers.economy.FoodConditionTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-08-03T06:36:44.418Z" hostname="TOASTER" time="0.027">
+<testsuite name="dev.campaigncore.settlers.economy.FoodConditionTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-08-06T22:35:11.298Z" hostname="TOASTER" time="0.036">
   <properties/>
-  <testcase name="stableWhenNoResidents()" classname="dev.campaigncore.settlers.economy.FoodConditionTest" time="0.021"/>
-  <testcase name="shortageWhenDebtBelowOneDay()" classname="dev.campaigncore.settlers.economy.FoodConditionTest" time="0.0"/>
-  <testcase name="stableWhenProductionMeetsConsumption()" classname="dev.campaigncore.settlers.economy.FoodConditionTest" time="0.001"/>
+  <testcase name="stableWhenNoResidents()" classname="dev.campaigncore.settlers.economy.FoodConditionTest" time="0.028"/>
+  <testcase name="shortageWhenDebtBelowOneDay()" classname="dev.campaigncore.settlers.economy.FoodConditionTest" time="0.001"/>
+  <testcase name="stableWhenProductionMeetsConsumption()" classname="dev.campaigncore.settlers.economy.FoodConditionTest" time="0.002"/>
   <testcase name="strainedWhenUnderproducingButReserveCoversDay()" classname="dev.campaigncore.settlers.economy.FoodConditionTest" time="0.001"/>
   <testcase name="shortageWhenUnderproducingAndReserveShort()" classname="dev.campaigncore.settlers.economy.FoodConditionTest" time="0.001"/>
   <testcase name="surplusWhenProductionAmpleAndReserveDeep()" classname="dev.campaigncore.settlers.economy.FoodConditionTest" time="0.0"/>

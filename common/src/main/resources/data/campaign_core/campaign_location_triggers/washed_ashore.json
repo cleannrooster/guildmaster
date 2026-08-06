@@ -27,7 +27,6 @@
       "radius": 48,
       "min_stage": "REGIONAL_OBJECTIVES",
       "condition": "other_hub_placed",
-      "discover": "campaign_core:washed_ashore/distant_settlement",
       "handler": "settlement_raid"
     }
   ]

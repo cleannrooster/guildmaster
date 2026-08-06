@@ -1,19 +1,21 @@
 {
   "message.campaign_core.washed_ashore.washed_ashore": "You wake to the sound of the tide.",
+  "message.campaign_core.washed_ashore.void_waiting": "The grasp of the void is suffocating, but soon you will find release. Until then, you wander aimlessly, in a haze.",
   "objective.campaign_core.washed_ashore.inland": "Follow the signs of civilization inland.",
   "objective.campaign_core.washed_ashore.graveyard": "Follow the ruined road toward the graveyard.",
-  "message.campaign_core.washed_ashore.undertaker_discovered": "An Undertaker is looting the graves ahead.",
-  "message.campaign_core.washed_ashore.undertaker_relocated": "The graveyard threat has passed. The Undertaker has reached %s.",
+  "message.campaign_core.washed_ashore.undertaker_discovered": "An opportunist is looting the graves ahead.",
+  "message.campaign_core.washed_ashore.undertaker_relocated": "The graveyard threat has passed. The scum has reached %s.",
   "message.campaign_core.washed_ashore.encounter_active": "A hostile presence stirs nearby.",
   "message.campaign_core.washed_ashore.encounter_complete": "Objective complete: %s",
-  "objective.campaign_core.washed_ashore.regional": "Aid the region. Defeat any two local threats.",
+  "message.campaign_core.washed_ashore.encounter_reset": "The encounter has reset. Try again after %s.",
+  "objective.campaign_core.washed_ashore.regional": "Aid the region. Resolve the Dark Forest and Devil's Crossing, then defend the distant settlement.",
   "objective.campaign_core.washed_ashore.return_graveyard": "%s speaks of a grave robber on the coast road.",
-  "message.campaign_core.washed_ashore.respawn_relocated": "%s takes you in. Should you fall, you will wake here again — %s, %s, %s.",
+  "message.campaign_core.washed_ashore.respawn_relocated": "%s takes you in. Should you fall, you will wake here again.",
   "message.campaign_core.washed_ashore.raven_route": "A dark route has opened. Follow it to the Sculken Raven.",
   "message.campaign_core.washed_ashore.act_complete": "Act I complete.",
-  "message.campaign_core.washed_ashore.settlement_raid_begins": "Raiders fall upon %s! Stand with the townsfolk and drive them out.",
-  "message.campaign_core.washed_ashore.settlement_raid_repelled": "The raid is broken. %s holds because of you.",
-  "objective.campaign_core.washed_ashore.dark_forest": "Investigate the Dark Forest. The unnatural howls betray the empty land.",
+  "message.campaign_core.washed_ashore.settlement_raid_begins": "Raiders descend upon %s! Stand with the townsfolk and drive them out.",
+  "message.campaign_core.washed_ashore.settlement_raid_repelled": "The raid is finished. %s holds because of you.",
+  "objective.campaign_core.washed_ashore.dark_forest": "Investigate the Dark Forest. The unnatural howls betray the serene land.",
   "objective.campaign_core.washed_ashore.other_settlement": "Warn %s. Follow the trade road %s to reach it before the raiders do.",
   "objective.campaign_core.washed_ashore.crossing_route": "Investigate Devil's Crossing. Follow the ruined trade road %s.",
   "message.campaign_core.washed_ashore.forest_uneasy": "The forest has gone unnaturally still.",
@@ -28,9 +30,10 @@
   "message.campaign_core.washed_ashore.crossing_horde_rises": "The churned ground splits open.",
   "message.campaign_core.washed_ashore.crossing_wave": "Another wave tears itself free of the earth. (%s/%s)",
   "message.campaign_core.washed_ashore.crossing_horde_repelled": "The last of the risen dead falls still. Devil's Crossing is quiet once more.",
-  "message.campaign_core.washed_ashore.sculk_surface_found": "The land here is wrong — a spreading crust of sculk, listening. Sensors twitch and shriekers wait.",
-  "message.campaign_core.washed_ashore.sculk_raven_rises": "The sculk drinks its fill of the dead. The ground splits and a Sculken Raven tears free.",
-  "message.campaign_core.washed_ashore.sculk_wave": "The sculk births more soldiers — draugrs rise. (%s/%s)",
+  "message.campaign_core.washed_ashore.sculk_surface_found": "The sculk has reached the surface in this region.",
+  "message.campaign_core.washed_ashore.sculk_blight_spreads": "The sculk drinks its fill of death, and the blight spreads.",
+  "message.campaign_core.washed_ashore.sculk_raven_rises": "The sculk drinks its fill of the dead. The Sculken Raven descends.",
+  "message.campaign_core.washed_ashore.sculk_wave": "The sculk births more soldiers: draugrs rise. (%s/%s)",
   "message.campaign_core.washed_ashore.sculk_raven_defeated": "The Sculken Raven collapses into inert sculk. The listening land goes still.",
   "message.campaign_core.washed_ashore.recovered": "You regain your footing.",
   "message.campaign_core.washed_ashore.world_preparing": "Act I is preparing the world. Please wait. If preparation does not finish, leave and restart the world.",
@@ -97,6 +100,14 @@
   "sign.campaign_core.washed_ashore.west": "West"
   ,"item.campaign_core.washed_ashore.dread_fragment": "Dread Fragment"
   ,"item.campaign_core.washed_ashore.writhing_fragment": "Writhing Fragment"
+  ,"item.campaign_core.dread_fragment": "Dread Fragment"
+  ,"item.campaign_core.writhing_fragment": "Writhing Fragment"
+  ,"item.campaign_core.blight_fragment": "Fragment of Blight"
+  ,"message.campaign_core.washed_ashore.blight_challenge": "The fragment crumbles. This time, the blight does not hold back."
+  ,"message.campaign_core.washed_ashore.prestige_earned": "The blight is surpassed. — Prestige %s —"
+  ,"message.campaign_core.washed_ashore.prestige_wipe": "The tide takes all you carried, and you wash ashore once more. You feel... different."
+  ,"message.campaign_core.washed_ashore.blight_fizzled": "The blight collapses unwitnessed; its master was not here to claim it."
+  ,"message.campaign_core.washed_ashore.surpassing_reward": "Your prestige surpasses the spoils. the reward is granted %s times over."
   ,"quest.campaign_core.washed_ashore.consuming_dread": "The Consuming Dread"
   ,"quest.campaign_core.washed_ashore.devils_crossing": "Devil's Crossing"
   ,"objective.campaign_core.washed_ashore.devils_crossing_summary": "Investigate Devil's Crossing along the ruined trade road."
@@ -106,7 +117,7 @@
   ,"objective.campaign_core.washed_ashore.show_available_quests": "Press the Show Available Quests key to review your quests and reveal their markers."
   ,"objective.campaign_core.washed_ashore.show_available_quests_complete": "Quest complete: available quests and their markers revealed."
   ,"key.campaign_core.show_available_quests": "Show Available Quests"
-  ,"key.campaign_core.toggle_quest_markers": "Toggle Quest Markers"
+  ,"key.campaign_core.toggle_quest_markers": "Open Marker Screen"
   ,"message.campaign_core.quest_markers_on": "Quest Markers Toggled On"
   ,"message.campaign_core.quest_markers_off": "Quest Markers Toggled Off"
   ,"key.categories.campaign_core": "Campaign Core"
@@ -140,8 +151,20 @@
   ,"message.campaign_core.hub_incident.raven_warden_clash.start": "A Sculken Raven and a weakened Warden are battling on the outskirts of %s!"
   ,"message.campaign_core.hub_incident.raven_warden_clash.success": "The monstrous clash on the outskirts has ended."
   ,"message.campaign_core.hub_incident.raven_warden_clash.failure": "The battling monsters vanished into the wilds."
-  ,"screen.campaign_core.quest_markers": "Point of Interest Markers"
+  ,"screen.campaign_core.quest_markers": "Campaign Destinations"
   ,"screen.campaign_core.quest_markers.none": "No points of interest have been revealed yet."
+  ,"marker.campaign_core.category.objective": "Objective"
+  ,"marker.campaign_core.category.opportunity": "Opportunity"
+  ,"marker.campaign_core.category.landmark": "Landmark"
+  ,"marker.campaign_core.track": "Track"
+  ,"marker.campaign_core.untrack": "Untrack"
+  ,"marker.campaign_core.hide_landmarks": "Hide Landmarks"
+  ,"marker.campaign_core.show_landmarks": "Show Landmarks"
+  ,"marker.campaign_core.status.tracked": "Tracked"
+  ,"marker.campaign_core.status.available": "Available"
+  ,"marker.campaign_core.status.temporary": "Temporary"
+  ,"marker.campaign_core.status.discovered": "Discovered"
+  ,"marker.campaign_core.distance": "~%s blocks"
   ,"marker.campaign_core.washed_ashore.poi.guide": "Guide Sign"
   ,"marker.campaign_core.washed_ashore.poi.undertaker": "Undertaker's Graveyard"
   ,"marker.campaign_core.washed_ashore.poi.settlement": "First Settlement"

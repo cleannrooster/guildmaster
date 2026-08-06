@@ -46,6 +46,9 @@ import net.minecraft.world.phys.Vec3;
 public final class CrossingHordeManager {
     /** Marks a mob as part of the Devil's Crossing horde (read by the clear-check below). */
     public static final String HORDE_MEMBER_TAG="campaign_core_washed_ashore_crossing_horde";
+    private static final String HORDE_INSTANCE_TAG="campaign_core_washed_ashore_crossing_horde_instance=";
+    private static final String ESCORT_TAG="campaign_core_washed_ashore_crossing_escort";
+    private static final int LARGE_BEAST_ESCORT_SIZE=3;
     /** One-time flag: the horde has begun rising for this world. */
     private static final ResourceLocation HORDE_STARTED=CampaignCore.washedAshoreId("crossing_horde_started");
 
@@ -53,7 +56,11 @@ public final class CrossingHordeManager {
 
     /** Begins the horde: arms the world-level state so {@link #tick} raises the first wave next pass. */
     public static void begin(ServerLevel level,WashedAshoreSavedData data,EncounterAnchor encounter,ServerPlayer player){
-        WashedAshoreInstance act=data.act();
+        WashedAshoreInstance act=data.instanceFor(encounter);
+        if(act==null){
+            CampaignCore.LOGGER.error("crossing_horde_owner_missing encounter={}",encounter.encounterId());
+            return;
+        }
         if(encounter.status()==EncounterStatus.COMPLETED||encounter.status()==EncounterStatus.ACTIVE
                 ||act.completedWorldObjectives().contains(HORDE_STARTED))return;
         // If a single large creature is eligible from the pool, let it emerge as the boss (tracked by
@@ -67,6 +74,7 @@ public final class CrossingHordeManager {
             if(EncounterManager.activate(level,data,encounter,player,false)){
                 data.dirty();
                 BlockPos where=act.devilsCrossing();
+                if(hasZombieEscort(single))spawnZombieEscort(level,where==null?encounter.bossSpawnPos():where);
                 for(ServerPlayer nearby:level.players())
                     if(where==null||nearby.blockPosition().distSqr(where)<=square(64))
                         CampaignMessages.send(nearby,"crossing_horde_rises");
@@ -90,12 +98,49 @@ public final class CrossingHordeManager {
         CampaignCore.LOGGER.info("crossing_horde_started crossing={} waves={}",crossing,def.horde().waveCount());
     }
 
+    private static boolean hasZombieEscort(dev.campaigncore.washedashore.encounter.EncounterCandidate candidate){
+        ResourceLocation entity=candidate.entity().orElse(null);
+        return BuiltInRegistries.ENTITY_TYPE.getKey(EntityType.HOGLIN).equals(entity)
+                ||BuiltInRegistries.ENTITY_TYPE.getKey(EntityType.RAVAGER).equals(entity);
+    }
+
+    private static void spawnZombieEscort(ServerLevel level,BlockPos center){
+        int spawned=0;
+        for(int i=0;i<LARGE_BEAST_ESCORT_SIZE;i++){
+            Entity entity=EntityType.ZOMBIE.create(level);if(entity==null)continue;
+            CampaignSpawnProtection.protectFromSun(entity);
+            double angle=i*Math.PI*2/LARGE_BEAST_ESCORT_SIZE+level.random.nextDouble()*.4;
+            BlockPos near=center.offset(Mth.floor(Math.cos(angle)*5),0,Mth.floor(Math.sin(angle)*5));
+            Vec3 spawn=EncounterManager.resolveClearSpawn(level,entity,near);
+            entity.moveTo(spawn.x,spawn.y,spawn.z,level.random.nextFloat()*360,0);
+            entity.addTag(ESCORT_TAG);
+            if(entity instanceof Mob mob){
+                mob.finalizeSpawn(level,level.getCurrentDifficultyAt(BlockPos.containing(spawn)),MobSpawnType.EVENT,null);
+                sunProof(mob);mob.setPersistenceRequired();
+                var target=level.getNearestPlayer(mob,48);if(target!=null)mob.setTarget(target);
+                if(target instanceof ServerPlayer trigger)
+                    dev.campaigncore.prestige.PrestigeManager.applyDifficulty(mob,
+                            dev.campaigncore.prestige.PrestigeManager.level(
+                                    WashedAshoreSavedData.get(level),trigger.getUUID(),CampaignCore.WASHED_ASHORE));
+            }
+            if(level.addFreshEntity(entity)){eruption(level,spawn);spawned++;}
+        }
+        CampaignCore.LOGGER.info("crossing_large_beast_escort_spawned center={} zombies={}",center,spawned);
+    }
+
     /** Wave pump: raises the next wave once the field is clear, and completes the encounter after the last. */
     public static void tick(ServerLevel level,WashedAshoreSavedData data){
-        WashedAshoreInstance act=data.act();
+        for(WashedAshoreInstance act:data.instances())tick(level,data,act);
+    }
+
+    private static void tick(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance act){
         if(!act.completedWorldObjectives().contains(HORDE_STARTED))return;
         EncounterAnchor encounter=act.encounters().get(EncounterManager.THRASHER);
-        if(encounter==null||encounter.status()==EncounterStatus.COMPLETED)return;
+        if(encounter==null||encounter.status()!=EncounterStatus.DORMANT)return;
+        if(EncounterManager.failWhenUnattended(level,data,encounter)){
+            reset(level,data,act);
+            return;
+        }
         EncounterDefinition def=EncounterManager.definitions().get(EncounterManager.THRASHER).orElse(null);
         if(def==null||!def.isHorde())return;
         HordeProfile horde=def.horde();
@@ -105,21 +150,28 @@ public final class CrossingHordeManager {
         // mistaken for a cleared field. Members are persistent, so any survivor is still in the world.
         ServerPlayer near=nearestPlayer(level,crossing,horde.scanRadius());
         if(near==null)return;
-        if(hasSurvivor(level,crossing,horde.scanRadius()))return;
+        if(hasSurvivor(level,act,crossing,horde.scanRadius()))return;
         int wave=act.crossingHordeWave();
         if(wave<horde.waveCount()){
-            int spawned=spawnWave(level,horde,horde.waves().get(wave),near);
+            int spawned=spawnWave(level,act,horde,horde.waves().get(wave),near);
+            if(spawned==0){
+                encounter.fail(level.getGameTime());
+                data.dirty();
+                CampaignCore.LOGGER.error("crossing_horde_wave_spawned_none crossing={} wave={}/{}; retry scheduled",
+                        crossing,wave+1,horde.waveCount());
+                return;
+            }
             act.setCrossingHordeWave(wave+1);
             data.dirty();
             announceWave(level,crossing,horde.scanRadius(),wave+1,horde.waveCount());
             CampaignCore.LOGGER.info("crossing_horde_wave crossing={} wave={}/{} spawned={}",crossing,wave+1,horde.waveCount(),spawned);
         }else{
-            if(EncounterManager.complete(level,data,EncounterManager.THRASHER))
+            if(EncounterManager.complete(level,data,encounter))
                 CampaignCore.LOGGER.info("crossing_horde_cleared crossing={} waves={}",crossing,horde.waveCount());
         }
     }
 
-    private static int spawnWave(ServerLevel level,HordeProfile horde,HordeProfile.Wave wave,ServerPlayer around){
+    private static int spawnWave(ServerLevel level,WashedAshoreInstance act,HordeProfile horde,HordeProfile.Wave wave,ServerPlayer around){
         int spawned=0;
         for(EncounterDefinition.RaidMember member:wave.members()){
             EntityType<?> type=BuiltInRegistries.ENTITY_TYPE.get(member.entity());
@@ -128,13 +180,13 @@ public final class CrossingHordeManager {
                 CampaignCore.LOGGER.error("crossing_horde_unknown_entity entity={}",member.entity());
                 continue;
             }
-            for(int i=0;i<member.count();i++)if(raise(level,type,around,horde.spawnRadius()))spawned++;
+            for(int i=0;i<member.count();i++)if(raise(level,act,type,around,horde.spawnRadius()))spawned++;
         }
         return spawned;
     }
 
     /** Spawns one horde member erupting from the ground near the player, sun-proofed and hunting. */
-    private static boolean raise(ServerLevel level,EntityType<?> type,ServerPlayer around,int spawnRadius){
+    private static boolean raise(ServerLevel level,WashedAshoreInstance act,EntityType<?> type,ServerPlayer around,int spawnRadius){
         Entity entity=type.create(level);
         if(entity==null)return false;
         CampaignSpawnProtection.protectFromSun(entity);
@@ -143,12 +195,17 @@ public final class CrossingHordeManager {
         Vec3 spawn=EncounterManager.resolveClearSpawn(level,entity,target);
         entity.moveTo(spawn.x,spawn.y,spawn.z,level.random.nextFloat()*360,0);
         entity.addTag(HORDE_MEMBER_TAG);
+        entity.addTag(HORDE_INSTANCE_TAG+act.actInstanceId());
         if(entity instanceof Mob mob){
             mob.finalizeSpawn(level,level.getCurrentDifficultyAt(BlockPos.containing(spawn)),MobSpawnType.EVENT,null);
             sunProof(mob);
             // Persist so risen dead are never counted as "gone" merely because the crossing chunks unloaded.
             mob.setPersistenceRequired();
             if(mob.getTarget()==null&&around.isAlive())mob.setTarget(around);
+            // The horde rises for this player; their act prestige levels it (no-op at 0).
+            dev.campaigncore.prestige.PrestigeManager.applyDifficulty(mob,
+                    dev.campaigncore.prestige.PrestigeManager.level(
+                            WashedAshoreSavedData.get(level),around.getUUID(),CampaignCore.WASHED_ASHORE));
         }
         if(!level.addFreshEntity(entity))return false;
         eruption(level,spawn);
@@ -175,10 +232,10 @@ public final class CrossingHordeManager {
                 CampaignMessages.send(player,"crossing_wave",wave,total);
     }
 
-    private static boolean hasSurvivor(ServerLevel level,BlockPos crossing,int scanRadius){
+    private static boolean hasSurvivor(ServerLevel level,WashedAshoreInstance act,BlockPos crossing,int scanRadius){
         AABB area=new AABB(crossing).inflate(scanRadius);
         return !level.getEntitiesOfClass(LivingEntity.class,area,
-                e->e.isAlive()&&e.getTags().contains(HORDE_MEMBER_TAG)).isEmpty();
+                e->e.isAlive()&&belongsToHorde(e,act)).isEmpty();
     }
 
     private static ServerPlayer nearestPlayer(ServerLevel level,BlockPos crossing,int scanRadius){
@@ -192,9 +249,39 @@ public final class CrossingHordeManager {
 
     /** Clears the world-level horde state so the crossing encounter can be retried from scratch. */
     public static void reset(WashedAshoreSavedData data){
-        data.act().completedWorldObjectives().remove(HORDE_STARTED);
-        data.act().setCrossingHordeWave(0);
+        for(WashedAshoreInstance act:data.instances()){
+            reset(act);
+        }
         data.dirty();
+    }
+
+    /** Clears only the reinstance that owns an automatically retried crossing encounter. */
+    public static void reset(WashedAshoreSavedData data,EncounterAnchor encounter){
+        WashedAshoreInstance act=data.instanceFor(encounter);
+        if(act==null)return;
+        reset(act);data.dirty();
+    }
+
+    /** Clears the loaded members and progress of one physical crossing horde. */
+    public static void reset(ServerLevel level,WashedAshoreSavedData data,WashedAshoreInstance act){
+        BlockPos crossing=act.devilsCrossing();
+        EncounterAnchor encounter=act.encounters().get(EncounterManager.THRASHER);
+        if(crossing!=null&&encounter!=null&&level.hasChunkAt(crossing)){
+            AABB area=new AABB(crossing).inflate(encounter.resetRadius());
+            for(LivingEntity member:level.getEntitiesOfClass(LivingEntity.class,area,e->belongsToHorde(e,act)))member.discard();
+        }
+        reset(act);data.dirty();
+    }
+
+    private static void reset(WashedAshoreInstance act){
+        act.completedWorldObjectives().remove(HORDE_STARTED);
+        act.setCrossingHordeWave(0);
+    }
+
+    private static boolean belongsToHorde(LivingEntity entity,WashedAshoreInstance act){
+        if(!entity.getTags().contains(HORDE_MEMBER_TAG))return false;
+        boolean tagged=entity.getTags().stream().anyMatch(tag->tag.startsWith(HORDE_INSTANCE_TAG));
+        return !tagged||entity.getTags().contains(HORDE_INSTANCE_TAG+act.actInstanceId());
     }
 
     private static double square(double value){return value*value;}

@@ -23,17 +23,27 @@ public final class CampaignQuestMessages {
         }
         if(available(progress.dreadQuest()))CampaignMessages.sendIndexed(player,"quest_dark_forest",index++);
         if(available(progress.crossingQuest()))CampaignMessages.sendIndexed(player,"quest_devils_crossing",index++);
-        if(distantSettlementAvailable(progress,data.act()))CampaignMessages.sendIndexed(player,"quest_distant_settlement",index++,
-                SettlementDialogueNames.distant(player.serverLevel(),data.act()));
+        WashedAshoreInstance instance=nearestInstance(data,player);
+        if(instance!=null&&distantSettlementAvailable(progress))CampaignMessages.sendIndexed(player,"quest_distant_settlement",index++,
+                SettlementDialogueNames.distant(player.serverLevel(),instance));
         if(index==0)CampaignMessages.sendIndexed(player,"no_available_quests",0);
     }
     private static boolean available(RegionalQuestStage stage){
         return stage!=RegionalQuestStage.LOCKED&&stage!=RegionalQuestStage.COMPLETE;
     }
     /** Regional Encounter C: open through the regional phase until the distant settlement's raid is repelled. */
-    private static boolean distantSettlementAvailable(WashedAshoreProgress progress,WashedAshoreInstance act){
+    private static boolean distantSettlementAvailable(WashedAshoreProgress progress){
         return progress.stage().atLeast(WashedAshoreStage.REGIONAL_OBJECTIVES)
-                &&!progress.stage().atLeast(WashedAshoreStage.RAVEN_ROUTE_REVEALED)
-                &&!act.completedWorldObjectives().contains(EncounterManager.REGIONAL_C);
+                &&progress.crossingQuest()==RegionalQuestStage.COMPLETE
+                &&!progress.defeatedBosses().contains(EncounterManager.REGIONAL_C);
+    }
+    private static WashedAshoreInstance nearestInstance(WashedAshoreSavedData data,ServerPlayer player){
+        WashedAshoreInstance nearest=null;double distance=Double.MAX_VALUE;
+        for(WashedAshoreInstance instance:data.instances()){
+            if(instance.otherSettlement()==null||!instance.contentReady())continue;
+            double candidate=player.blockPosition().distSqr(instance.otherSettlement());
+            if(candidate<distance){distance=candidate;nearest=instance;}
+        }
+        return nearest;
     }
 }

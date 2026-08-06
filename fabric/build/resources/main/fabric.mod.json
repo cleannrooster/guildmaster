@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "campaign_core",
-  "version": "0.1.0+1.21.1",
+  "version": "0.1.2+1.21.1",
   "name": "Campaign Core",
   "description": "A reusable, persistent campaign framework with a bundled Washed Ashore reference campaign.",
   "environment": "*",

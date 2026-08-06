@@ -4,11 +4,13 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.ResourceLocation;
 import java.util.List;
+import java.util.Optional;
 
 /** Reusable objective plus spawn policy. The datapack resource id is the incident id. */
 public record HubIncidentDefinition(int tier,int weight,int durationTicks,HubIncidentObjectiveType objective,
                                     HubIncidentSpawnType spawn,List<ResourceLocation> entities,int count,
-                                    int minimumDistance,int maximumDistance,int defenseRadius,HubIncidentSpecial special) {
+                                    int minimumDistance,int maximumDistance,int defenseRadius,HubIncidentSpecial special,
+                                    Optional<ResourceLocation> rewardLootTable) {
     public static final Codec<HubIncidentDefinition> CODEC=RecordCodecBuilder.create(i->i.group(
             Codec.INT.fieldOf("tier").forGetter(HubIncidentDefinition::tier),
             Codec.INT.optionalFieldOf("weight",1).forGetter(HubIncidentDefinition::weight),
@@ -20,7 +22,8 @@ public record HubIncidentDefinition(int tier,int weight,int durationTicks,HubInc
             Codec.INT.optionalFieldOf("minimum_distance",40).forGetter(HubIncidentDefinition::minimumDistance),
             Codec.INT.optionalFieldOf("maximum_distance",80).forGetter(HubIncidentDefinition::maximumDistance),
             Codec.INT.optionalFieldOf("defense_radius",12).forGetter(HubIncidentDefinition::defenseRadius),
-            HubIncidentSpecial.CODEC.optionalFieldOf("special",HubIncidentSpecial.NONE).forGetter(HubIncidentDefinition::special)
+            HubIncidentSpecial.CODEC.optionalFieldOf("special",HubIncidentSpecial.NONE).forGetter(HubIncidentDefinition::special),
+            ResourceLocation.CODEC.optionalFieldOf("reward_loot_table").forGetter(HubIncidentDefinition::rewardLootTable)
     ).apply(i,HubIncidentDefinition::new));
     public HubIncidentDefinition{
         if(tier<1||weight<1||durationTicks<20||count<1)throw new IllegalArgumentException("incident numeric values must be positive");
@@ -28,5 +31,6 @@ public record HubIncidentDefinition(int tier,int weight,int durationTicks,HubInc
         if(minimumDistance<1||maximumDistance<minimumDistance||defenseRadius<1)throw new IllegalArgumentException("incident distances are invalid");
         entities=List.copyOf(entities);
         if(special==null)special=HubIncidentSpecial.NONE;
+        if(rewardLootTable==null)rewardLootTable=Optional.empty();
     }
 }

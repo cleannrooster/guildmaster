@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.campaigncore.settlers.behavior.SettlerHurtByTargetGoalTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-03T06:36:44.404Z" hostname="TOASTER" time="0.005">
+<testsuite name="dev.campaigncore.settlers.behavior.SettlerHurtByTargetGoalTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-06T22:35:11.281Z" hostname="TOASTER" time="0.005">
   <properties/>
   <testcase name="settlerForgivesPlayerAfterEightSecondsWithoutHostility()" classname="dev.campaigncore.settlers.behavior.SettlerHurtByTargetGoalTest" time="0.002"/>
   <testcase name="settlerTargetsRecentlyHostilePlayerInsideSettlement()" classname="dev.campaigncore.settlers.behavior.SettlerHurtByTargetGoalTest" time="0.001"/>
-  <testcase name="settlerImmediatelyStopsTargetingPlayerOutsideSettlement()" classname="dev.campaigncore.settlers.behavior.SettlerHurtByTargetGoalTest" time="0.001"/>
+  <testcase name="settlerImmediatelyStopsTargetingPlayerOutsideSettlement()" classname="dev.campaigncore.settlers.behavior.SettlerHurtByTargetGoalTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

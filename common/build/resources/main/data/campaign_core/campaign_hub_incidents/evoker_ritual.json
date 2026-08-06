@@ -3,5 +3,6 @@
   "objective": "kill_group", "spawn": "around_hub",
   "entities": ["minecraft:evoker"], "count": 4,
   "minimum_distance": 56, "maximum_distance": 88,
+  "reward_loot_table": "campaign_core:washed_ashore/incidents/tier_3",
   "special": { "attributes": { "max_health": 42, "armor": 4 } }
 }

@@ -1,8 +1,6 @@
 {
   "replace": false,
   "values": [
-    { "id": "bossesrise:sirok", "required": false },
-    { "id": "desert_scourge:desert_scourge", "required": false },
     { "id": "born_in_chaos_v1:mother_spider", "required": false },
     { "id": "born_in_chaos_v1:corpse_fish", "required": false },
     { "id": "mowziesmobs:frostmaw", "required": false },

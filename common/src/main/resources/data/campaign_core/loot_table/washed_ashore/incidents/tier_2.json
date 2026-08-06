@@ -1,0 +1,7 @@
+{"type":"minecraft:chest","pools":[
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:diamond_sword"},{"type":"minecraft:item","name":"minecraft:diamond_axe"},{"type":"minecraft:item","name":"minecraft:diamond_chestplate"},{"type":"minecraft:item","name":"minecraft:diamond_pickaxe"},{"type":"minecraft:item","name":"minecraft:crossbow"}]},
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:diamond","functions":[{"function":"minecraft:set_count","count":{"min":2,"max":6}}]}]},
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:emerald_block","functions":[{"function":"minecraft:set_count","count":{"min":1,"max":2}}]}]},
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:golden_apple","functions":[{"function":"minecraft:set_count","count":{"min":1,"max":2}}]}]},
+ {"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:experience_bottle","functions":[{"function":"minecraft:set_count","count":{"min":6,"max":12}}]}]}
+]}

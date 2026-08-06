@@ -3,5 +3,6 @@
   "objective": "kill_group", "spawn": "approaching_hub",
   "entities": ["minecraft:zombie"], "count": 6,
   "minimum_distance": 56, "maximum_distance": 80,
+  "reward_loot_table": "campaign_core:washed_ashore/incidents/tier_1",
   "special": { "mount": "minecraft:chicken" }
 }

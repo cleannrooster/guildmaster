@@ -1,90 +1,57 @@
 # Campaign Core
 
-Campaign Core is an Architectury campaign framework for Minecraft 1.21.1 with Fabric
-and NeoForge support. Its bundled reference campaign is
-`campaign_core:washed_ashore`.
+Campaign Core adds a persistent adventure campaign and living frontier settlements to
+Minecraft 1.21.1. It supports Fabric and NeoForge and ships as one mod jar.
 
-## Unified package
+The included **Washed Ashore** campaign begins on a remote beach, leads through
+graveyards, settlements and regional threats, and culminates in a sculk-infested
+finale. Its companion **Settlers** system gives campaign settlements persistent
+residents, jobs, routines, food production, morale and reactions to danger.
 
-Campaign Core is a **single jar with two subsystems**:
+## Start here
 
-- the campaign staging/sequencing framework and the bundled Washed Ashore campaign
-  (`dev.campaigncore.*`, `campaign_core:` namespace); and
-- the merged **Settlers** subsystem that powers persistent, role-driven frontier
-  settlements created by campaign acts (`dev.campaigncore.settlers.*`, `settlers:`
-  namespace).
+- [Player Guide](docs/PLAYER_GUIDE.md) — controls, progression, settlements and
+  spoiler-light troubleshooting.
+- [Server & Pack Guide](docs/SERVER_GUIDE.md) — installation expectations,
+  configuration, administration, multiple layouts and reset behavior.
+- [Command Reference](docs/COMMANDS.md) — player and operator commands, grouped by
+  purpose.
+- [Developer API](docs/API.md) — Java and datapack integration details.
 
-Both ship and evolve together under mod id `campaign_core`. The `settlers:` resource
-namespace is preserved for all Settlers assets/data (a registry namespace is
-independent of the mod id), so no settler `ResourceLocation`s change. Sculk &
-Scavenge remains an external dependency. Two saved-data stores coexist unchanged:
-`campaign_core_campaigns` and `settlers_settlements`.
+## Highlights
 
-Washed Ashore drives the beach awakening, persistent regional progression, frontier
-settlement/hub placement (via the in-process Settlers `FrontierHubRuntimePlacer`), the
-Undertaker, Consuming Dread, Investigate Devil's Crossing, Warn the Distant Settlement,
-and the Sculken Raven finale. Devil's Crossing currently raises a temporary husk and
-skeleton wave horde (sunlight cannot burn them) in place of the unfinished Thrasher. A
-Sculk Surface arena lies beyond the Dark Forest — once two regional objectives are done,
-mob deaths on its sculk-converted ground wake a half-scaled Sculken Raven backed by draugr
-waves.
+- A persistent Act I campaign whose progress survives restarts.
+- In-world directions, quest messages and toggleable point-of-interest markers.
+- Several simultaneous regional objectives that may be completed in different orders.
+- Interchangeable copies of campaign POIs: any eligible copy can advance the shared
+  player questline.
+- Data-driven encounter candidates that can use creatures from compatible installed
+  mods.
+- Frontier settlements with named residents, work and home assignments, daily
+  routines, production, food pressure, morale, travelers and threat responses.
+- Timed settlement incidents ranging from animal attacks to high-tier monster events.
+- Multiplayer-aware progression: physical encounters belong to their location while
+  quest completion belongs to each participating player.
 
-Campaign-facing identifiers live below `campaign_core:washed_ashore/`. Encounter
-definitions are in `data/campaign_core/campaign_encounters`, translations and item
-assets are under `assets/campaign_core`, and common implementation code uses the
-`dev.campaigncore` package root. Merged Settlers code lives under
-`dev.campaigncore.settlers` with assets/data under the `settlers` namespace.
+## Requirements
 
-Reloadable campaign skeletons are authored at
-`data/<namespace>/campaigns/*.json`. See the API guide for the current schema.
-Data-driven Immersive Messages are authored as bundles under
-`data/<namespace>/campaign_messages/`.
+Campaign Core requires Java 21 and the loader-specific versions of Architectury,
+GeckoLib, Cloth Config, Immersive Messages, TxniLib and Sculk & Scavenge. Fabric also
+uses Fabric API, Forge Config API Port and the Fabric loader. See the distributed mod
+metadata for exact version constraints.
 
-## Settlement creation
+## A note on world generation
 
-By default, settlements are created only as part of campaign acts. The authored
-frontier hub remains available to the Washed Ashore runtime placer, but it is no
-longer registered for random natural world generation. Vanilla villages also do
-not convert into settlements automatically.
+Campaign settlements are created by the campaign by default. Random frontier-hub
+world generation and automatic conversion of ordinary villages are legacy opt-ins,
+not normal behavior. Existing worlds remain supported, but back up a world before
+using destructive administrative recovery commands.
 
-Both former behaviors remain available as opt-in legacy compatibility features.
-The ready-to-copy natural-worldgen datapack and its installation notes live in
-`legacy/natural_settlement_worldgen/`. Legacy village conversion can be enabled in
-the Settlers configuration; its conversion chance is configurable separately.
+## For contributors
 
-## Commands
+This repository contains the unified `campaign_core` mod. Campaign content uses the
+`campaign_core:` namespace; the bundled Settlers subsystem intentionally retains the
+`settlers:` resource namespace. Contributor rules, including the designer-owned
+settlement structure restriction, are in [AGENTS.md](AGENTS.md).
 
-General campaign commands:
-
-- `/campaign list`
-- `/campaign inspect <campaign>`
-
-Washed Ashore development and recovery commands are below:
-
-- `/campaign washed_ashore inspect`
-- `/campaign washed_ashore generate`
-- `/campaign washed_ashore reset`
-- `/campaign washed_ashore setstage <player> <stage>`
-- `/campaign washed_ashore teleport <location>`
-- `/campaign washed_ashore encounter ...`
-- `/campaign washed_ashore quest ...`
-- `/campaign washed_ashore recovery ...`
-
-## Compatibility
-
-Campaign Core reads the previous saved-data key, resource namespace, and encounter
-metadata when loading an existing world. Loaded identifiers are normalized to
-`campaign_core:washed_ashore/...`; all newly written runtime identifiers use the
-Campaign Core namespace.
-
-## Build
-
-Run `gradlew build` to build both loader artifacts.
-
-Run `gradlew test` for the JUnit 5 suite. It runs in the `common` project and covers
-both subsystems: Campaign Core's own tests plus the merged Settlers suite under
-`common/src/test/java/dev/campaigncore/settlers/**`.
-
-Contributor guidance, including the designer-owned settlement-asset constraint, is in
-[`AGENTS.md`](AGENTS.md). The current Java API and its limitations are documented in
-[`docs/API.md`](docs/API.md).
+Build with `gradlew build` and run the common JUnit suite with `gradlew test`.

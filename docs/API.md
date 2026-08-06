@@ -356,10 +356,11 @@ chat so authoring errors remain visible.
 Washed Ashore's bundle is
 `data/campaign_core/campaign_messages/washed_ashore/messages.json`. Its Java logic
 now supplies local IDs rather than translation keys or presentation channels.
-`CampaignQuestMessages.playAvailable(player)` displays its three currently available
-regional objectives: the Consuming Dread (Dark Forest), Investigate Devil's Crossing,
-and Warn the Distant Settlement (Regional Encounter C). Each carries its own objective
-marker while incomplete.
+`CampaignQuestMessages.playAvailable(player)` displays the currently available regional
+objectives. The Consuming Dread (Dark Forest) and Investigate Devil's Crossing begin the
+regional phase; completing Devil's Crossing reveals Warn the Distant Settlement
+(Regional Encounter C). All three are required and each revealed objective carries its
+own marker while incomplete.
 
 ### Devil's Crossing horde (temporary)
 
@@ -389,7 +390,7 @@ change: drop the `horde` block and point `on_full.action` back at a boss-spawn a
 `campaign_core:washed_ashore/sculk_surface` is a death-triggered arena at its own layout
 slot (`sculk_surface`), resolved on the settlement→forest bearing but further out, with a
 large-radius fallback near the settlement. It becomes eligible once a player has cleared
-two regional objectives (`EncounterManager.hasCompletedRequiredRegionalObjectives`). When
+all three regional objectives (`EncounterManager.hasCompletedRequiredRegionalObjectives`). When
 such a player first approaches, a swath of ground converts to sculk and is dressed with
 sensors and shriekers; after `mob_deaths_to_trigger` mobs die within `scan_radius`, a
 Sculken Raven scaled to `health_scale` / `damage_scale` rises, reinforced by `wave_count`
@@ -414,6 +415,37 @@ player is credited with the Raven's kill. Tuning lives in the encounter's `sculk
 player-credit completion, all from persisted world-level act state. Damage scaling applies
 to the `ATTACK_DAMAGE` attribute; damage a boss deals through custom (non-attribute) code
 is outside its reach.
+
+## Prestige challenges
+
+`dev.campaigncore.prestige` holds the act-agnostic prestige framework (see
+`docs/prestige-implementation-plan.md` for the full design). A player's per-act prestige
+levels live in a `PrestigeLedger` reachable only through `PrestigeManager`; the ledger is
+the single piece of per-player state that survives a prestige wipe.
+
+An act opts in with two integration points:
+
+```java
+// 1. At init: name the fragment item that invokes the act's prestige challenge.
+PrestigeChallenges.register(MY_ACT_ID, () -> MyItems.MY_FRAGMENT.get());
+
+// 2. On a won challenge whose invoker witnessed the kill (online, in-dimension,
+//    within the fight's reset radius): level the ledger and take everything.
+PrestigeManager.award(level, data, invoker, MY_ACT_ID);
+```
+
+The act's own fight manager decides what "invoked" means (Washed Ashore consumes a held
+Fragment of Blight when the Sculk Surface fight starts and stores the invoker UUID on the
+act instance) and must clear its invoker state on fight failure. `award` increments the
+act's ledger entry, queues the wipe on the ledger (so logout only defers it — 
+`PrestigeManager.checkPendingWipe` runs on join), and applies it: all-campaign
+progression, inventory, XP, effects and respawn reset; the intro machinery re-runs.
+
+Scaling helpers are act-scoped: `PrestigeManager.applyDifficulty(mob,
+PrestigeManager.level(data, playerId, actId))` piles the triggering player's levels onto
+a spawn (+50% health, +25% damage per level; no-op at 0), and
+`PrestigeManager.surpassingRolls(prestige, random)` converts the +25%-per-level
+surpassing chance into a reward-roll count for the receiving player.
 
 ## Client quest request
 
@@ -561,15 +593,23 @@ Use Minecraft's `/reload` command after changing a datapack. Successful reloads 
 logged with the loaded campaign IDs. `/campaign inspect <campaign>` shows the loaded
 skeleton and its runtime-instance state.
 
-The repository also contains encounter JSON examples at:
+Washed Ashore encounter definitions are loaded from:
 
 ```text
 data/campaign_core/campaign_encounters/*.json
 ```
 
-Those encounter files are still **not loaded**. Java defaults in the Washed Ashore
-encounter manager remain authoritative. The following definition systems are not
-implemented:
+These files are authoritative for encounter anchors, activation/reset radii, required
+stages, retry delays, reward loot tables, activation meters, completion effects, raid
+rosters, horde waves and sculk-arena profiles. Reload validation is atomic: an invalid
+definition rejects the encounter-definition reload instead of partially replacing the
+live registry.
+
+Weighted creature and raid alternatives are loaded separately from
+`data/<namespace>/campaign_encounter_candidates/`. Java supplies the named handlers
+referenced by these definitions and the physical runtime that executes them.
+
+The following broader generic-campaign definition systems are not implemented:
 
 ```text
 campaign_acts/
@@ -579,7 +619,7 @@ registered trigger types
 registered action types
 ```
 
-Do not ship a datapack expecting those definitions to execute yet.
+Do not ship a datapack expecting those broader definitions to execute yet.
 
 ## Hub incident definitions
 
@@ -595,12 +635,14 @@ Reusable incidents are loaded from
 `kill_group`, `kill_leader`, and `defend_location`. Supported spawn strategies are
 `around_hub`, `approaching_hub`, and `moving_patrol`. Optional fields include
 `weight`, `duration_ticks`, `count`, `minimum_distance`, `maximum_distance`, and
-`defense_radius`.
+`defense_radius`. `reward_loot_table` optionally identifies a chest-context loot table.
 
 Hub clocks, active definitions, locations, member UUIDs, patrol destinations, and
 recent selections are persisted in the Washed Ashore overworld saved data. Selection
 waits for a player inside the hub activation radius and avoids immediately repeating
-the previous incident where another eligible definition exists.
+the previous incident where another eligible definition exists. On success, the reward
+table is rolled separately for every living player within the hub player radius. Failed
+and operator-stopped incidents do not grant rewards.
 
 Example incident:
 
@@ -668,9 +710,15 @@ with:
 When `bypass` is false, the requested position is the center of a normal beach
 search. When true, its surface column is accepted as the starting point without the
 beach-biome requirement. `instance_minimum_separation` in the Washed Ashore campaign
-config controls the required distance from every existing layout (4096 by default).
+config controls the required distance from every existing layout (12288 by default).
 Player progression remains shared. Revealed marker types and location triggers use
 the closest corresponding POI across all persisted layouts.
+
+Regional coordinates are reserved without generating their chunks during initial
+Act layout creation. The Raven encounter uses its selected natural terrain rather
+than flattening an arena. Before deferred construction of Devil's Crossing or the
+other settlement, Campaign Core checks the surrounding 7x7-chunk core and relocates
+away from inhabited chunks, block entities, and existing structure starts.
 
 Automatic creation of the primary layout is controlled by the normal server config
 file `config/campaign_core-server.properties`:

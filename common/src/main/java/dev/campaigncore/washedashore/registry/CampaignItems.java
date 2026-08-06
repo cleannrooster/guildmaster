@@ -21,6 +21,9 @@ public final class CampaignItems {
             ()->new Item(new Item.Properties().stacksTo(16).rarity(Rarity.RARE)));
     public static final RegistrySupplier<Item> WRITHING_FRAGMENT=ITEMS.register("writhing_fragment",
             ()->new Item(new Item.Properties().stacksTo(16).rarity(Rarity.RARE)));
+    /** Prestige challenge token for Washed Ashore: re-summons the Sculken Raven at full power. */
+    public static final RegistrySupplier<Item> BLIGHT_FRAGMENT=ITEMS.register("blight_fragment",
+            ()->new Item(new Item.Properties().stacksTo(16).rarity(Rarity.EPIC)));
     private static final Set<ResourceLocation> DUNGEON_LOOT=Set.of(
             ResourceLocation.parse("minecraft:chests/simple_dungeon"),
             ResourceLocation.parse("minecraft:chests/abandoned_mineshaft"),
